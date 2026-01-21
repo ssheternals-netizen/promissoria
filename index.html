@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Promissória com Banco de Dados</title>
+    <title>Sistema de Promissórias com Memória</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root { --p-dark: #004d40; --p-gold: #c5a059; --bg: #f8f9fa; }
@@ -19,23 +19,22 @@
         .valor-input { background: #fffde7; border: 2px solid var(--p-gold); font-size: 20px; font-weight: bold; text-align: center; }
         button { width: 100%; padding: 20px; background: var(--p-dark); color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 30px; }
         
-        /* Estilo do Autocomplete */
-        .autocomplete-suggestions { border: 1px solid #ddd; background: #fff; cursor: pointer; position: absolute; width: 100%; max-height: 150px; overflow-y: auto; z-index: 999; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .suggestion { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
-        .suggestion:hover { background-color: #f1f8e9; }
         .rel { position: relative; }
+        .autocomplete-suggestions { border: 1px solid #ddd; background: #fff; cursor: pointer; position: absolute; width: 100%; max-height: 200px; overflow-y: auto; z-index: 999; border-radius: 0 0 8px 8px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); display: none; }
+        .suggestion { padding: 12px; border-bottom: 1px solid #f0f0f0; font-size: 14px; color: #333; }
+        .suggestion:hover { background-color: #e0f2f1; color: var(--p-dark); font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Nota Promissória Profissional</h2>
+    <h2>Gerador de Promissória Profissional</h2>
     
     <div class="grid">
-        <div class="section-title">Informações do Beneficiário (Credor)</div>
+        <div class="section-title">Dados do Beneficiário (Quem recebe)</div>
         <div class="full-width rel">
             <label>Nome Completo:</label>
-            <input type="text" id="ben_nome" oninput="showSuggestions(this, 'ben')" autocomplete="off">
+            <input type="text" id="ben_nome" oninput="showSuggestions(this, 'ben')" placeholder="Digite para buscar ou cadastrar..." autocomplete="off">
             <div id="ben_list" class="autocomplete-suggestions"></div>
         </div>
         <div><label>CPF:</label><input type="text" id="ben_cpf" maxlength="14" oninput="fCPF(this)"></div>
@@ -49,10 +48,10 @@
         <div><label>Valor R$:</label><input type="text" id="valor" class="valor-input" placeholder="0,00" oninput="fMoeda(this)"></div>
         <div class="full-width"><label>Valor por Extenso:</label><input type="text" id="extenso" style="background:#f1f8e9" readonly></div>
 
-        <div class="section-title">Informações do Emitente (Quem Paga)</div>
+        <div class="section-title">Dados do Emitente (Quem paga)</div>
         <div class="full-width rel">
             <label>Nome do Emitente:</label>
-            <input type="text" id="emi_nome" oninput="showSuggestions(this, 'emi')" autocomplete="off">
+            <input type="text" id="emi_nome" oninput="showSuggestions(this, 'emi')" placeholder="Digite para buscar ou cadastrar..." autocomplete="off">
             <div id="emi_list" class="autocomplete-suggestions"></div>
         </div>
         <div><label>CEP:</label><input type="text" id="emi_cep" maxlength="9" onblur="buscaCEP('emi')"></div>
@@ -64,50 +63,73 @@
         </div>
     </div>
 
-    <button onclick="gerarPDF()">GERAR PDF E SALVAR DADOS</button>
+    <button onclick="gerarPDF()">GERAR PDF E SALVAR NO BANCO</button>
 </div>
 
 <script>
-    // --- LÓGICA DE BANCO DE DADOS (LocalStorage) ---
+    const id = (el) => document.getElementById(el);
+
+    // --- BANCO DE DATOS MELHORADO ---
     function saveToDatabase() {
-        let db = JSON.parse(localStorage.getItem('promissoriaDB')) || [];
-        const novoRegistro = {
-            ben: { nome: id('ben_nome').value, cpf: id('ben_cpf').value, rg: id('ben_rg').value, tel: id('ben_tel').value, cep: id('ben_cep').value, end: id('ben_endereco').value, num: id('ben_numero').value },
-            emi: { nome: id('emi_nome').value, cep: id('emi_cep').value, end: id('emi_endereco').value, num: id('emi_numero').value, loc: id('local_emissao').value }
+        const db_ben = JSON.parse(localStorage.getItem('db_beneficiarios')) || [];
+        const db_emi = JSON.parse(localStorage.getItem('db_emitentes')) || [];
+
+        const novoBen = {
+            nome: id('ben_nome').value, cpf: id('ben_cpf').value, rg: id('ben_rg').value, 
+            tel: id('ben_tel').value, cep: id('ben_cep').value, end: id('ben_endereco').value, num: id('ben_numero').value
         };
-        // Evita duplicados básicos pelo nome
-        db = db.filter(item => item.ben.nome !== novoRegistro.ben.nome || item.emi.nome !== novoRegistro.emi.nome);
-        db.push(novoRegistro);
-        localStorage.setItem('promissoriaDB', JSON.stringify(db));
+        const novoEmi = {
+            nome: id('emi_nome').value, cep: id('emi_cep').value, end: id('emi_endereco').value, 
+            num: id('emi_numero').value, loc: id('local_emissao').value
+        };
+
+        if(novoBen.nome.length > 3){
+            const index = db_ben.findIndex(i => i.nome.toLowerCase() === novoBen.nome.toLowerCase());
+            if(index !== -1) db_ben[index] = novoBen; else db_ben.push(novoBen);
+            localStorage.setItem('db_beneficiarios', JSON.stringify(db_ben));
+        }
+
+        if(novoEmi.nome.length > 3){
+            const indexE = db_emi.findIndex(i => i.nome.toLowerCase() === novoEmi.nome.toLowerCase());
+            if(indexE !== -1) db_emi[indexE] = novoEmi; else db_emi.push(novoEmi);
+            localStorage.setItem('db_emitentes', JSON.stringify(db_emi));
+        }
     }
 
     function showSuggestions(input, tipo) {
         const val = input.value.toLowerCase();
         const list = id(tipo + '_list');
         list.innerHTML = '';
-        if (val.length < 2) return;
+        if (val.length < 1) { list.style.display = 'none'; return; }
 
-        const db = JSON.parse(localStorage.getItem('promissoriaDB')) || [];
-        const matches = db.filter(item => item[tipo].nome.toLowerCase().includes(val));
+        const db = JSON.parse(localStorage.getItem(tipo === 'ben' ? 'db_beneficiarios' : 'db_emitentes')) || [];
+        const matches = db.filter(item => item.nome.toLowerCase().includes(val));
 
-        matches.forEach(match => {
-            const div = document.createElement('div');
-            div.className = 'suggestion';
-            div.innerText = match[tipo].nome;
-            div.onclick = () => fillForm(match);
-            list.appendChild(div);
-        });
+        if(matches.length > 0) {
+            list.style.display = 'block';
+            matches.forEach(match => {
+                const div = document.createElement('div');
+                div.className = 'suggestion';
+                div.innerText = match.nome;
+                div.onclick = () => {
+                    if(tipo === 'ben') {
+                        id('ben_nome').value = match.nome; id('ben_cpf').value = match.cpf; id('ben_rg').value = match.rg;
+                        id('ben_tel').value = match.tel; id('ben_cep').value = match.cep; id('ben_endereco').value = match.end; id('ben_numero').value = match.num;
+                    } else {
+                        id('emi_nome').value = match.nome; id('emi_cep').value = match.cep; id('emi_endereco').value = match.end;
+                        id('emi_numero').value = match.num; id('local_emissao').value = match.loc;
+                    }
+                    list.style.display = 'none';
+                };
+                list.appendChild(div);
+            });
+        } else { list.style.display = 'none'; }
     }
 
-    function fillForm(data) {
-        id('ben_nome').value = data.ben.nome; id('ben_cpf').value = data.ben.cpf; id('ben_rg').value = data.ben.rg;
-        id('ben_tel').value = data.ben.tel; id('ben_cep').value = data.ben.cep; id('ben_endereco').value = data.ben.end; id('ben_numero').value = data.ben.num;
-        id('emi_nome').value = data.emi.nome; id('emi_cep').value = data.emi.cep; id('emi_endereco').value = data.emi.end;
-        id('emi_numero').value = data.emi.num; id('local_emissao').value = data.emi.loc;
-        id('ben_list').innerHTML = ''; id('emi_list').innerHTML = '';
-    }
-
-    function id(el) { return document.getElementById(el); }
+    // Fecha listas ao clicar fora
+    document.addEventListener('click', (e) => {
+        if(!e.target.closest('.rel')) { id('ben_list').style.display = 'none'; id('emi_list').style.display = 'none'; }
+    });
 
     // --- MÁSCARAS ---
     function fCPF(i) { let v = i.value.replace(/\D/g, ""); if (v.length > 11) v = v.slice(0, 11); v = v.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2"); i.value = v; }
@@ -163,7 +185,6 @@
         if(id('ben_rg').value) docs += " RG: " + id('ben_rg').value;
         if(id('ben_tel').value) docs += " Tel: " + id('ben_tel').value;
 
-        // Desenho do PDF
         pdf.setDrawColor(0, 77, 64); pdf.setLineWidth(1.5); pdf.rect(10, 10, 277, 190);
         pdf.setDrawColor(197, 160, 89); pdf.setLineWidth(0.5); pdf.rect(15, 15, 267, 180);
 
@@ -180,23 +201,23 @@
         pdf.setFont("helvetica", "bold"); pdf.text("EMITENTE: " + e_nome, 25, 100);
         pdf.setFont("helvetica", "normal"); pdf.text("ENDEREÇO: " + e_end, 25, 110);
 
-        // Assinaturas Centralizadas
-        pdf.setFontSize(12);
-        // Coluna Emitente
+        // ASSINATURAS CENTRALIZADAS
+        pdf.setFontSize(11);
+        // Linha Emitente
         pdf.line(25, 155, 125, 155); 
         pdf.text(e_nome, 75, 161, { align: "center" });
         pdf.text("ASSINATURA DO EMITENTE", 75, 167, { align: "center" });
 
-        // Coluna Beneficiário
+        // Linha Beneficiário
         pdf.line(160, 155, 260, 155);
         pdf.text(b_nome, 210, 161, { align: "center" });
         pdf.text("ASSINATURA DO BENEFICIÁRIO", 210, 167, { align: "center" });
 
-        // Rodapé com data manual
         pdf.setFont("helvetica", "italic");
         pdf.text(`Emitida em ${local_manual}`, 148, 185, { align: "center" });
 
-        pdf.save(`Promissoria_${e_nome}.pdf`);
+        // SALVAR COM O NOME DO BENEFICIÁRIO
+        pdf.save(`PROMISSORIA ${b_nome}.pdf`);
     }
 </script>
 </body>
