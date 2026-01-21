@@ -20,10 +20,11 @@
         button { width: 100%; padding: 18px; background: #27ae60; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 25px; }
         button:hover { background: #219150; }
         
+        /* Estilo do PDF */
         #promissoria-print { padding: 50px; border: 2px solid #000; width: 800px; display: none; background: white; color: #000; }
-        .header-p { font-size: 22px; font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 30px; text-align: center; }
-        .body-p { font-size: 16px; line-height: 1.8; text-align: justify; }
-        .footer-p { margin-top: 60px; display: flex; justify-content: space-between; }
+        .header-p { font-size: 24px; font-weight: bold; border-bottom: 3px solid #000; padding-bottom: 10px; margin-bottom: 40px; text-align: center; }
+        .body-p { font-size: 18px; line-height: 2; text-align: justify; }
+        .footer-p { margin-top: 80px; display: flex; justify-content: space-between; }
         .sig-box { text-align: center; width: 45%; }
         .line { border-top: 1px solid #000; margin-bottom: 5px; }
     </style>
@@ -56,10 +57,10 @@
             <input type="text" id="ben_numero">
         </div>
 
-        <div class="section-title">VALOR PAGÁVEL</div>
+        <div class="section-title">VALOR DA PROMISSÓRIA</div>
         <div>
             <label>Valor (R$):</label>
-            <input type="text" id="valor" placeholder="0,00" oninput="mascaraMoeda(this)">
+            <input type="text" id="valor" placeholder="0,00" oninput="formatarMoeda(this)">
         </div>
         <div class="full-width">
             <label>Valor por Extenso:</label>
@@ -89,12 +90,12 @@
         </div>
 
         <div class="full-width">
-            <label>Cidade de Emissão:</label>
+            <label>Local de Emissão (Cidade):</label>
             <input type="text" id="local_emissao">
         </div>
     </div>
 
-    <button onclick="gerarPDF()">GERAR PDF</button>
+    <button onclick="gerarPDF()">GERAR PDF AGORA</button>
 </div>
 
 <div id="promissoria-print">
@@ -105,7 +106,7 @@
         ou à sua ordem, a quantia de <strong>R$ <span id="p_valor_num"></span></strong> 
         (<strong id="p_valor_extenso"></strong>) em moeda corrente nacional.
         <br><br>
-        <strong>EMITENTE:</strong> <span id="p_emi_nome"></span><br>
+        <strong>EMITENTE (Devedor):</strong> <span id="p_emi_nome"></span><br>
         <strong>ENDEREÇO DO EMITENTE:</strong> <span id="p_emi_endereco_completo"></span>
     </div>
     <div class="footer-p">
@@ -118,22 +119,22 @@
             <strong><span id="p_sign_ben"></span></strong><br>Beneficiário
         </div>
     </div>
-    <div style="margin-top: 40px; text-align: center; font-size: 11px;">
+    <div style="margin-top: 50px; text-align: center; font-size: 12px;">
         Emitida em <span id="p_local"></span>, em <span id="p_hoje"></span>.
     </div>
 </div>
 
 <script>
-    // MÁSCARA DE MOEDA EM TEMPO REAL
-    function mascaraMoeda(i) {
-        let v = i.value.replace(/\D/g,'');
+    // MÁSCARA MONETÁRIA CORRIGIDA
+    function formatarMoeda(campo) {
+        let v = campo.value.replace(/\D/g,'');
         v = (v/100).toFixed(2) + '';
         v = v.replace(".", ",");
         v = v.replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,");
         v = v.replace(/(\d)(\d{3}),/g, "$1.$2,");
-        i.value = v;
+        campo.value = v;
         
-        // Atualiza o extenso com o valor numérico puro
+        // Converte para extenso conforme digita
         let valorPuro = parseFloat(v.replace(/\./g, '').replace(',', '.'));
         document.getElementById('extenso').value = numeroParaExtenso(valorPuro);
     }
@@ -149,6 +150,7 @@
                 document.getElementById(tipo + '_cidade').value = data.localidade + "/" + data.uf;
             } else {
                 alert("CEP não encontrado.");
+                document.getElementById(tipo + '_cidade').value = "";
             }
         }
     }
@@ -178,6 +180,8 @@
 
     async function gerarPDF() {
         const { jsPDF } = window.jspdf;
+        
+        // Mapeia dados
         document.getElementById('p_ben_nome').innerText = document.getElementById('ben_nome').value.toUpperCase();
         document.getElementById('p_ben_endereco_completo').innerText = document.getElementById('ben_endereco').value + ", nº " + document.getElementById('ben_numero').value + " - " + document.getElementById('ben_cidade').value;
         document.getElementById('p_valor_num').innerText = document.getElementById('valor').value;
@@ -191,11 +195,15 @@
 
         const el = document.getElementById('promissoria-print');
         el.style.display = 'block';
+        
         const canvas = await html2canvas(el, { scale: 2 });
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('p', 'mm', 'a4');
-        pdf.addImage(imgData, 'PNG', 10, 20, 190, 110);
+        
+        // Ajuste da imagem no PDF
+        pdf.addImage(imgData, 'PNG', 10, 20, 190, 115);
         pdf.save(`Promissoria.pdf`);
+        
         el.style.display = 'none';
     }
 </script>
