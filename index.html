@@ -46,25 +46,25 @@
             <input type="text" id="ben_nome">
         </div>
         <div><label>CPF:</label><input type="text" id="ben_cpf" maxlength="14" oninput="fCPF(this)"></div>
-        <div><label>RG:</label><input type="text" id="ben_rg" oninput="fRG(this)"></div>
+        <div><label>RG:</label><input type="text" id="ben_rg" maxlength="12" oninput="fRG(this)"></div>
         <div><label>Telefone:</label><input type="text" id="ben_tel" oninput="fTel(this)"></div>
         <div><label>CEP:</label><input type="text" id="ben_cep" maxlength="9" onblur="buscaCEP('ben')"></div>
         <div class="full-width"><label>Endereço:</label><input type="text" id="ben_endereco"></div>
-        <div><label>Número:</label><input type="text" id="ben_numero"></div>
+        <div><label>Número da Residência:</label><input type="text" id="ben_numero"></div>
 
         <div class="section-title">Valores</div>
-        <div><label>Valor R$:</label><input type="text" id="valor" class="valor-input" oninput="fMoeda(this)"></div>
+        <div><label>Valor R$:</label><input type="text" id="valor" class="valor-input" placeholder="0,00" oninput="fMoeda(this)"></div>
         <div class="full-width"><label>Valor por Extenso:</label><input type="text" id="extenso" style="background:#f1f8e9" readonly></div>
 
         <div class="section-title">Informações do Emitente (Quem Paga)</div>
         <div class="full-width"><label>Nome do Emitente:</label><input type="text" id="emi_nome"></div>
         <div><label>CEP:</label><input type="text" id="emi_cep" maxlength="9" onblur="buscaCEP('emi')"></div>
         <div class="full-width"><label>Endereço:</label><input type="text" id="emi_endereco"></div>
-        <div><label>Número:</label><input type="text" id="emi_numero"></div>
+        <div><label>Número da Residência:</label><input type="text" id="emi_numero"></div>
         <div class="full-width"><label>Cidade de Emissão:</label><input type="text" id="local_emissao"></div>
     </div>
 
-    <button onclick="gerarPDF()">GERAR E SALVAR DADOS</button>
+    <button onclick="gerarPDF()">GERAR PDF E SALVAR DADOS DO EMITENTE</button>
 </div>
 
 <div id="promissoria-print">
@@ -86,22 +86,22 @@
             <div><div class="p-line"></div><strong><span id="sig_emi"></span></strong><br>ASSINATURA DO EMITENTE</div>
             <div><div class="p-line"></div><strong><span id="sig_ben"></span></strong><br>ASSINATURA DO BENEFICIÁRIO</div>
         </div>
-        <div style="margin-top:40px; text-align:center; font-weight:bold;">
+        <div style="margin-top:40px; text-align:center; font-weight:bold; color:var(--p-dark);">
             Emitida em <span id="pdf_local"></span>, em <span id="pdf_data"></span>.
         </div>
     </div>
 </div>
 
 <script>
-    // Carregar dados salvos do Emitente ao abrir a página
+    // Carregar dados salvos do Emitente
     window.onload = function() {
-        const salvos = JSON.parse(localStorage.getItem('dadosEmitente'));
-        if (salvos) {
-            document.getElementById('emi_nome').value = salvos.nome || '';
-            document.getElementById('emi_cep').value = salvos.cep || '';
-            document.getElementById('emi_endereco').value = salvos.endereco || '';
-            document.getElementById('emi_numero').value = salvos.numero || '';
-            document.getElementById('local_emissao').value = salvos.local || '';
+        const dados = JSON.parse(localStorage.getItem('dadosEmitente'));
+        if (dados) {
+            document.getElementById('emi_nome').value = dados.nome || '';
+            document.getElementById('emi_cep').value = dados.cep || '';
+            document.getElementById('emi_endereco').value = dados.endereco || '';
+            document.getElementById('emi_numero').value = dados.numero || '';
+            document.getElementById('local_emissao').value = dados.local || '';
         }
     };
 
@@ -109,6 +109,16 @@
         let v = i.value.replace(/\D/g, "");
         if (v.length > 11) v = v.slice(0, 11);
         v = v.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+        i.value = v;
+    }
+
+    // NOVA FUNÇÃO RG CORRIGIDA: XX.XXX.XXX-X
+    function fRG(i) {
+        let v = i.value.replace(/\D/g, "");
+        if (v.length > 9) v = v.slice(0, 9);
+        v = v.replace(/(\d{2})(\d)/, "$1.$2");
+        v = v.replace(/(\d{3})(\d)/, "$1.$2");
+        v = v.replace(/(\d{3})(\d{1})$/, "$1-$2");
         i.value = v;
     }
 
@@ -120,7 +130,6 @@
         document.getElementById('extenso').value = nExtenso(parseFloat(v.replace(/\./g, '').replace(',', '.')));
     }
 
-    function fRG(i) { i.value = i.value.replace(/\D/g,'').replace(/(\d{2})(\d)/,"$1.$2").replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d{1})$/,"-$1"); }
     function fTel(i) { i.value = i.value.replace(/\D/g,'').replace(/^(\d{2})(\d)/g,"($1) $2").replace(/(\d{5})(\d)/,"$1-$2"); }
 
     async function buscaCEP(t) {
@@ -154,15 +163,14 @@
     }
 
     async function gerarPDF() {
-        // Salvar dados do Emitente no navegador
-        const dadosParaSalvar = {
+        const dSalvar = {
             nome: document.getElementById('emi_nome').value,
             cep: document.getElementById('emi_cep').value,
             endereco: document.getElementById('emi_endereco').value,
             numero: document.getElementById('emi_numero').value,
             local: document.getElementById('local_emissao').value
         };
-        localStorage.setItem('dadosEmitente', JSON.stringify(dadosParaSalvar));
+        localStorage.setItem('dadosEmitente', JSON.stringify(dSalvar));
 
         const { jsPDF } = window.jspdf;
         let docs = "";
