@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nota Promissória Profissional Light</title>
+    <title>Promissória com Banco de Dados</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root { --p-dark: #004d40; --p-gold: #c5a059; --bg: #f8f9fa; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; color: #333; }
         .container { max-width: 900px; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); margin: auto; border-top: 12px solid var(--p-dark); }
-        h2 { text-align: center; color: var(--p-dark); letter-spacing: 1px; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+        h2 { text-align: center; color: var(--p-dark); margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
         .section-title { grid-column: span 2; background: #e0f2f1; padding: 12px; font-weight: bold; margin-top: 15px; border-radius: 6px; color: var(--p-dark); font-size: 14px; text-transform: uppercase; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         label { display: block; font-weight: 600; font-size: 12px; margin-bottom: 5px; color: #555; }
@@ -17,86 +17,110 @@
         input:focus { border-color: var(--p-dark); box-shadow: 0 0 0 3px rgba(0,77,64,0.1); }
         .full-width { grid-column: span 2; }
         .valor-input { background: #fffde7; border: 2px solid var(--p-gold); font-size: 20px; font-weight: bold; text-align: center; }
-        button { width: 100%; padding: 20px; background: var(--p-dark); color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 30px; transition: 0.3s; }
-        button:hover { background: #00695c; }
+        button { width: 100%; padding: 20px; background: var(--p-dark); color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 30px; }
+        
+        /* Estilo do Autocomplete */
+        .autocomplete-suggestions { border: 1px solid #ddd; background: #fff; cursor: pointer; position: absolute; width: 100%; max-height: 150px; overflow-y: auto; z-index: 999; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .suggestion { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+        .suggestion:hover { background-color: #f1f8e9; }
+        .rel { position: relative; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Emissor de Nota Promissória</h2>
+    <h2>Nota Promissória Profissional</h2>
     
     <div class="grid">
         <div class="section-title">Informações do Beneficiário (Credor)</div>
-        <div class="full-width">
+        <div class="full-width rel">
             <label>Nome Completo:</label>
-            <input type="text" id="ben_nome">
+            <input type="text" id="ben_nome" oninput="showSuggestions(this, 'ben')" autocomplete="off">
+            <div id="ben_list" class="autocomplete-suggestions"></div>
         </div>
         <div><label>CPF:</label><input type="text" id="ben_cpf" maxlength="14" oninput="fCPF(this)"></div>
         <div><label>RG:</label><input type="text" id="ben_rg" maxlength="12" oninput="fRG(this)"></div>
         <div><label>Telefone:</label><input type="text" id="ben_tel" oninput="fTel(this)"></div>
         <div><label>CEP:</label><input type="text" id="ben_cep" maxlength="9" onblur="buscaCEP('ben')"></div>
         <div class="full-width"><label>Endereço:</label><input type="text" id="ben_endereco"></div>
-        <div><label>Número da Residência:</label><input type="text" id="ben_numero"></div>
+        <div><label>Número:</label><input type="text" id="ben_numero"></div>
 
         <div class="section-title">Valores</div>
         <div><label>Valor R$:</label><input type="text" id="valor" class="valor-input" placeholder="0,00" oninput="fMoeda(this)"></div>
         <div class="full-width"><label>Valor por Extenso:</label><input type="text" id="extenso" style="background:#f1f8e9" readonly></div>
 
         <div class="section-title">Informações do Emitente (Quem Paga)</div>
-        <div class="full-width"><label>Nome do Emitente:</label><input type="text" id="emi_nome"></div>
+        <div class="full-width rel">
+            <label>Nome do Emitente:</label>
+            <input type="text" id="emi_nome" oninput="showSuggestions(this, 'emi')" autocomplete="off">
+            <div id="emi_list" class="autocomplete-suggestions"></div>
+        </div>
         <div><label>CEP:</label><input type="text" id="emi_cep" maxlength="9" onblur="buscaCEP('emi')"></div>
         <div class="full-width"><label>Endereço:</label><input type="text" id="emi_endereco"></div>
-        <div><label>Número da Residência:</label><input type="text" id="emi_numero"></div>
-        <div class="full-width"><label>Cidade de Emissão:</label><input type="text" id="local_emissao"></div>
+        <div><label>Número:</label><input type="text" id="emi_numero"></div>
+        <div class="full-width">
+            <label>Cidade e Data de Emissão:</label>
+            <input type="text" id="local_emissao" placeholder="Ex: Jacareí, 21 de Janeiro de 2026">
+        </div>
     </div>
 
-    <button onclick="gerarPDF()">GERAR PDF ULTRA LEVE</button>
+    <button onclick="gerarPDF()">GERAR PDF E SALVAR DADOS</button>
 </div>
 
 <script>
-    // Memória de salvamento
-    window.onload = function() {
-        const dados = JSON.parse(localStorage.getItem('dadosEmitente'));
-        if (dados) {
-            document.getElementById('emi_nome').value = dados.nome || '';
-            document.getElementById('emi_cep').value = dados.cep || '';
-            document.getElementById('emi_endereco').value = dados.endereco || '';
-            document.getElementById('emi_numero').value = dados.numero || '';
-            document.getElementById('local_emissao').value = dados.local || '';
-        }
-    };
-
-    function fCPF(i) {
-        let v = i.value.replace(/\D/g, "");
-        if (v.length > 11) v = v.slice(0, 11);
-        v = v.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-        i.value = v;
+    // --- LÓGICA DE BANCO DE DADOS (LocalStorage) ---
+    function saveToDatabase() {
+        let db = JSON.parse(localStorage.getItem('promissoriaDB')) || [];
+        const novoRegistro = {
+            ben: { nome: id('ben_nome').value, cpf: id('ben_cpf').value, rg: id('ben_rg').value, tel: id('ben_tel').value, cep: id('ben_cep').value, end: id('ben_endereco').value, num: id('ben_numero').value },
+            emi: { nome: id('emi_nome').value, cep: id('emi_cep').value, end: id('emi_endereco').value, num: id('emi_numero').value, loc: id('local_emissao').value }
+        };
+        // Evita duplicados básicos pelo nome
+        db = db.filter(item => item.ben.nome !== novoRegistro.ben.nome || item.emi.nome !== novoRegistro.emi.nome);
+        db.push(novoRegistro);
+        localStorage.setItem('promissoriaDB', JSON.stringify(db));
     }
 
-    function fRG(i) {
-        let v = i.value.replace(/\D/g, "");
-        if (v.length > 9) v = v.slice(0, 9);
-        v = v.replace(/(\d{2})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1})$/, "$1-$2");
-        i.value = v;
+    function showSuggestions(input, tipo) {
+        const val = input.value.toLowerCase();
+        const list = id(tipo + '_list');
+        list.innerHTML = '';
+        if (val.length < 2) return;
+
+        const db = JSON.parse(localStorage.getItem('promissoriaDB')) || [];
+        const matches = db.filter(item => item[tipo].nome.toLowerCase().includes(val));
+
+        matches.forEach(match => {
+            const div = document.createElement('div');
+            div.className = 'suggestion';
+            div.innerText = match[tipo].nome;
+            div.onclick = () => fillForm(match);
+            list.appendChild(div);
+        });
     }
 
-    function fMoeda(i) {
-        let v = i.value.replace(/\D/g,'');
-        v = (v/100).toFixed(2) + '';
-        v = v.replace(".", ",").replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,").replace(/(\d)(\d{3}),/g, "$1.$2,");
-        i.value = v;
-        document.getElementById('extenso').value = nExtenso(parseFloat(v.replace(/\./g, '').replace(',', '.')));
+    function fillForm(data) {
+        id('ben_nome').value = data.ben.nome; id('ben_cpf').value = data.ben.cpf; id('ben_rg').value = data.ben.rg;
+        id('ben_tel').value = data.ben.tel; id('ben_cep').value = data.ben.cep; id('ben_endereco').value = data.ben.end; id('ben_numero').value = data.ben.num;
+        id('emi_nome').value = data.emi.nome; id('emi_cep').value = data.emi.cep; id('emi_endereco').value = data.emi.end;
+        id('emi_numero').value = data.emi.num; id('local_emissao').value = data.emi.loc;
+        id('ben_list').innerHTML = ''; id('emi_list').innerHTML = '';
     }
 
+    function id(el) { return document.getElementById(el); }
+
+    // --- MÁSCARAS ---
+    function fCPF(i) { let v = i.value.replace(/\D/g, ""); if (v.length > 11) v = v.slice(0, 11); v = v.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2"); i.value = v; }
+    function fRG(i) { let v = i.value.replace(/\D/g, ""); if (v.length > 9) v = v.slice(0, 9); v = v.replace(/(\d{2})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1})$/, "$1-$2"); i.value = v; }
+    function fMoeda(i) { let v = i.value.replace(/\D/g,''); v = (v/100).toFixed(2) + ''; v = v.replace(".", ",").replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,").replace(/(\d)(\d{3}),/g, "$1.$2,"); i.value = v; id('extenso').value = nExtenso(parseFloat(v.replace(/\./g, '').replace(',', '.'))); }
     function fTel(i) { i.value = i.value.replace(/\D/g,'').replace(/^(\d{2})(\d)/g,"($1) $2").replace(/(\d{5})(\d)/,"$1-$2"); }
 
     async function buscaCEP(t) {
-        let c = document.getElementById(t+'_cep').value.replace(/\D/g,'');
+        let c = id(t+'_cep').value.replace(/\D/g,'');
         if(c.length===8) {
             const r = await fetch(`https://viacep.com.br/ws/${c}/json/`);
             const d = await r.json();
-            if(!d.erro) document.getElementById(t+'_endereco').value = `${d.logradouro}, ${d.bairro} - ${d.localidade}/${d.uf}`;
+            if(!d.erro) id(t+'_endereco').value = `${d.logradouro}, ${d.bairro} - ${d.localidade}/${d.uf}`;
         }
     }
 
@@ -122,85 +146,57 @@
     }
 
     function gerarPDF() {
+        saveToDatabase();
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('l', 'mm', 'a4');
 
-        // Salvar dados no LocalStorage
-        const dSalvar = {
-            nome: document.getElementById('emi_nome').value,
-            cep: document.getElementById('emi_cep').value,
-            endereco: document.getElementById('emi_endereco').value,
-            numero: document.getElementById('emi_numero').value,
-            local: document.getElementById('local_emissao').value
-        };
-        localStorage.setItem('dadosEmitente', JSON.stringify(dSalvar));
-
-        // Dados
-        const ben_nome = document.getElementById('ben_nome').value.toUpperCase();
-        const ben_end = document.getElementById('ben_endereco').value + ", nº " + document.getElementById('ben_numero').value;
-        const valor_num = document.getElementById('valor').value;
-        const valor_ext = document.getElementById('extenso').value;
-        const emi_nome = document.getElementById('emi_nome').value.toUpperCase();
-        const emi_end = document.getElementById('emi_endereco').value + ", nº " + document.getElementById('emi_numero').value;
-        const local = document.getElementById('local_emissao').value;
-        const data_hoje = new Date().toLocaleDateString('pt-BR');
+        const b_nome = id('ben_nome').value.toUpperCase();
+        const b_end = id('ben_endereco').value + ", nº " + id('ben_numero').value;
+        const e_nome = id('emi_nome').value.toUpperCase();
+        const e_end = id('emi_endereco').value + ", nº " + id('emi_numero').value;
+        const local_manual = id('local_emissao').value;
+        const val_num = id('valor').value;
+        const val_ext = id('extenso').value;
 
         let docs = "";
-        if(document.getElementById('ben_cpf').value) docs += " CPF: " + document.getElementById('ben_cpf').value;
-        if(document.getElementById('ben_rg').value) docs += " RG: " + document.getElementById('ben_rg').value;
-        if(document.getElementById('ben_tel').value) docs += " Tel: " + document.getElementById('ben_tel').value;
+        if(id('ben_cpf').value) docs += " CPF: " + id('ben_cpf').value;
+        if(id('ben_rg').value) docs += " RG: " + id('ben_rg').value;
+        if(id('ben_tel').value) docs += " Tel: " + id('ben_tel').value;
 
-        // Estilização do PDF Nativo (Super Leve)
-        pdf.setDrawColor(0, 77, 64);
-        pdf.setLineWidth(1.5);
-        pdf.rect(10, 10, 277, 190); // Borda Externa
-        
-        pdf.setDrawColor(197, 160, 89);
-        pdf.setLineWidth(0.5);
-        pdf.rect(15, 15, 267, 180); // Borda Interna Dourada
+        // Desenho do PDF
+        pdf.setDrawColor(0, 77, 64); pdf.setLineWidth(1.5); pdf.rect(10, 10, 277, 190);
+        pdf.setDrawColor(197, 160, 89); pdf.setLineWidth(0.5); pdf.rect(15, 15, 267, 180);
 
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(22);
-        pdf.setTextColor(0, 77, 64);
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(22); pdf.setTextColor(0, 77, 64);
         pdf.text("NOTA PROMISSÓRIA", 25, 35);
 
-        pdf.setFillColor(0, 77, 64);
-        pdf.rect(200, 25, 75, 15, 'F');
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(18);
-        pdf.text("R$ " + valor_num, 205, 35);
+        pdf.setFillColor(0, 77, 64); pdf.rect(200, 25, 75, 15, 'F');
+        pdf.setTextColor(255, 255, 255); pdf.setFontSize(18); pdf.text("R$ " + val_num, 205, 35);
 
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFont("times", "normal");
-        pdf.setFontSize(14);
-        
-        const corpoTexto = `Pagarei por esta única via de NOTA PROMISSÓRIA a ${ben_nome}${docs}, residente em ${ben_end}, ou à sua ordem, a quantia de ${valor_ext} em moeda corrente nacional.`;
-        
-        const splitTexto = pdf.splitTextToSize(corpoTexto, 240);
-        pdf.text(splitTexto, 25, 60);
+        pdf.setTextColor(0, 0, 0); pdf.setFont("times", "normal"); pdf.setFontSize(15);
+        const txt = `Pagarei por esta única via de NOTA PROMISSÓRIA a ${b_nome}${docs}, residente em ${b_end}, ou à sua ordem, a quantia de ${val_ext} em moeda corrente nacional.`;
+        pdf.text(pdf.splitTextToSize(txt, 240), 25, 60);
 
-        pdf.setFont("helvetica", "bold");
-        pdf.text("EMITENTE: " + emi_nome, 25, 100);
-        pdf.setFont("helvetica", "normal");
-        pdf.text("ENDEREÇO: " + emi_end, 25, 110);
+        pdf.setFont("helvetica", "bold"); pdf.text("EMITENTE: " + e_nome, 25, 100);
+        pdf.setFont("helvetica", "normal"); pdf.text("ENDEREÇO: " + e_end, 25, 110);
 
-        // Assinaturas
-        pdf.line(25, 155, 125, 155);
-        pdf.text("Assinatura do Emitente", 45, 162);
-        pdf.setFontSize(10);
-        pdf.text(emi_nome, 25, 152);
-
-        pdf.setFontSize(14);
-        pdf.line(160, 155, 260, 155);
-        pdf.text("Assinatura do Beneficiário", 180, 162);
-        pdf.setFontSize(10);
-        pdf.text(ben_nome, 160, 152);
-
+        // Assinaturas Centralizadas
         pdf.setFontSize(12);
-        pdf.setFont("helvetica", "italic");
-        pdf.text(`Emitida em ${local}, em ${data_hoje}.`, 148, 185, { align: "center" });
+        // Coluna Emitente
+        pdf.line(25, 155, 125, 155); 
+        pdf.text(e_nome, 75, 161, { align: "center" });
+        pdf.text("ASSINATURA DO EMITENTE", 75, 167, { align: "center" });
 
-        pdf.save(`Promissoria_${emi_nome}.pdf`);
+        // Coluna Beneficiário
+        pdf.line(160, 155, 260, 155);
+        pdf.text(b_nome, 210, 161, { align: "center" });
+        pdf.text("ASSINATURA DO BENEFICIÁRIO", 210, 167, { align: "center" });
+
+        // Rodapé com data manual
+        pdf.setFont("helvetica", "italic");
+        pdf.text(`Emitida em ${local_manual}`, 148, 185, { align: "center" });
+
+        pdf.save(`Promissoria_${e_nome}.pdf`);
     }
 </script>
 </body>
