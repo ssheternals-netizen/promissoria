@@ -10,16 +10,16 @@
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
         .container { max-width: 900px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin: auto; }
         h2 { text-align: center; color: #1a5c37; border-bottom: 2px solid #27ae60; padding-bottom: 10px; }
-        .section-title { grid-column: span 2; background: #f8f9fa; padding: 8px; font-weight: bold; margin-top: 15px; border-left: 4px solid #27ae60; }
+        .section-title { grid-column: span 2; background: #f8f9fa; padding: 8px; font-weight: bold; margin-top: 15px; border-left: 4px solid #27ae60; font-size: 14px; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         label { display: block; font-weight: 600; font-size: 12px; margin-bottom: 5px; color: #444; }
-        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; background: #fff; }
+        input:read-only { background: #f9f9f9; color: #777; }
         .full-width { grid-column: span 2; }
-        .extenso-view { background: #e9f7ef; font-weight: bold; color: #1e8449; }
+        .extenso-view { background: #e9f7ef !important; font-weight: bold; color: #1e8449; }
         button { width: 100%; padding: 18px; background: #27ae60; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 25px; }
         button:hover { background: #219150; }
         
-        /* Estilo do PDF */
         #promissoria-print { padding: 40px; border: 2px solid #000; width: 800px; display: none; background: white; color: #000; }
         .header-p { display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 25px; }
         .body-p { font-size: 15px; line-height: 1.7; text-align: justify; }
@@ -32,32 +32,37 @@
 
 <div class="container">
     <h2>Gerador de Nota Promissória</h2>
+    
     <div class="grid">
         <div class="section-title">DADOS DO BENEFICIÁRIO (QUEM RECEBE)</div>
         <div class="full-width">
             <label>Nome Completo:</label>
-            <input type="text" id="ben_nome" placeholder="Ex: José da Silva">
+            <input type="text" id="ben_nome">
         </div>
         <div>
-            <label>CEP:</label>
-            <input type="text" id="ben_cep" maxlength="8" onblur="buscaCEP('ben')" placeholder="Apenas números">
+            <label>CEP do Beneficiário:</label>
+            <input type="text" id="ben_cep" placeholder="00000000" onblur="buscaCEP('ben')">
         </div>
         <div>
             <label>Cidade/UF:</label>
             <input type="text" id="ben_cidade" readonly>
         </div>
         <div class="full-width">
-            <label>Endereço e Número:</label>
-            <input type="text" id="ben_endereco" placeholder="Rua, Bairro, nº">
+            <label>Endereço (Rua/Bairro):</label>
+            <input type="text" id="ben_endereco">
+        </div>
+        <div>
+            <label>Número Residência:</label>
+            <input type="text" id="ben_numero">
         </div>
 
         <div class="section-title">VALOR E VENCIMENTO</div>
         <div>
-            <label>Valor (R$):</label>
-            <input type="number" id="valor" oninput="atualizarExtenso()" placeholder="0.00">
+            <label>Valor Numérico (R$):</label>
+            <input type="number" id="valor" oninput="atualizarExtenso()">
         </div>
         <div>
-            <label>Data de Vencimento:</label>
+            <label>Vencimento:</label>
             <input type="date" id="vencimento">
         </div>
         <div class="full-width">
@@ -68,27 +73,32 @@
         <div class="section-title">DADOS DO EMITENTE (QUEM DEVE)</div>
         <div class="full-width">
             <label>Nome Completo:</label>
-            <input type="text" id="emi_nome" placeholder="Ex: Maria de Oliveira">
+            <input type="text" id="emi_nome">
         </div>
         <div>
-            <label>CEP:</label>
-            <input type="text" id="emi_cep" maxlength="8" onblur="buscaCEP('emi')" placeholder="Apenas números">
+            <label>CEP do Emitente:</label>
+            <input type="text" id="emi_cep" placeholder="00000000" onblur="buscaCEP('emi')">
         </div>
         <div>
             <label>Cidade/UF:</label>
             <input type="text" id="emi_cidade" readonly>
         </div>
         <div class="full-width">
-            <label>Endereço e Número:</label>
-            <input type="text" id="emi_endereco" placeholder="Rua, Bairro, nº">
+            <label>Endereço (Rua/Bairro):</label>
+            <input type="text" id="emi_endereco">
+        </div>
+        <div>
+            <label>Número Residência:</label>
+            <input type="text" id="emi_numero">
         </div>
 
         <div class="full-width">
-            <label>Local de Emissão (Cidade onde está assinando):</label>
-            <input type="text" id="local_emissao" placeholder="Ex: Curitiba - PR">
+            <label>Cidade de Emissão:</label>
+            <input type="text" id="local_emissao">
         </div>
     </div>
-    <button onclick="gerarPDF()">GERAR PDF (VIA ÚNICA)</button>
+
+    <button onclick="gerarPDF()">GERAR PDF</button>
 </div>
 
 <div id="promissoria-print">
@@ -98,21 +108,21 @@
     </div>
     <div class="body-p">
         No dia <strong><span id="p_venc_corpo"></span></strong>, pagarei por esta única via de NOTA PROMISSÓRIA a 
-        <strong><span id="p_ben_nome"></span></strong>, residente em <span id="p_ben_endereco"></span>, 
+        <strong><span id="p_ben_nome"></span></strong>, residente em <span id="p_ben_endereco_completo"></span>, 
         ou à sua ordem, a quantia de <strong>R$ <span id="p_valor_num"></span></strong> 
         (<strong id="p_valor_extenso"></strong>) em moeda corrente nacional.
         <br><br>
         <strong>EMITENTE:</strong> <span id="p_emi_nome"></span><br>
-        <strong>ENDEREÇO DO EMITENTE:</strong> <span id="p_emi_endereco"></span>
+        <strong>ENDEREÇO DO EMITENTE:</strong> <span id="p_emi_endereco_completo"></span>
     </div>
     <div class="footer-p">
         <div class="sig-box">
             <div class="line"></div>
-            <strong><span id="p_sign_emi"></span></strong><br>Emitente (Devedor)
+            <strong><span id="p_sign_emi"></span></strong><br>Emitente
         </div>
         <div class="sig-box">
             <div class="line"></div>
-            <strong><span id="p_sign_ben"></span></strong><br>Beneficiário (Credor)
+            <strong><span id="p_sign_ben"></span></strong><br>Beneficiário
         </div>
     </div>
     <div style="margin-top: 40px; text-align: center; font-size: 11px;">
@@ -121,6 +131,34 @@
 </div>
 
 <script>
+    // FUNÇÃO BUSCA CEP MELHORADA
+    async function buscaCEP(tipo) {
+        const campoCep = document.getElementById(tipo + '_cep');
+        const cep = campoCep.value.replace(/\D/g, ''); // Remove traços e pontos
+
+        if (cep !== "" && cep.length === 8) {
+            // Sinaliza que está buscando
+            document.getElementById(tipo + '_cidade').value = "Buscando...";
+
+            try {
+                const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                const data = await response.json();
+
+                if (!data.erro) {
+                    document.getElementById(tipo + '_endereco').value = data.logradouro + ", " + data.bairro;
+                    document.getElementById(tipo + '_cidade').value = data.localidade + "/" + data.uf;
+                } else {
+                    alert("CEP não encontrado.");
+                    document.getElementById(tipo + '_cidade').value = "";
+                }
+            } catch (error) {
+                alert("Erro ao buscar CEP. Verifique sua internet.");
+                document.getElementById(tipo + '_cidade').value = "";
+            }
+        }
+    }
+
+    // LÓGICA DE EXTENSO
     function numeroParaExtenso(n) {
         if (!n) return '';
         let num = parseFloat(n).toFixed(2).split('.');
@@ -148,32 +186,20 @@
         document.getElementById('extenso').value = numeroParaExtenso(document.getElementById('valor').value);
     }
 
-    async function buscaCEP(tipo) {
-        let cep = document.getElementById(tipo + '_cep').value.replace(/\D/g, '');
-        if (cep.length === 8) {
-            const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-            const data = await resp.json();
-            if (!data.erro) {
-                document.getElementById(tipo + '_endereco').value = data.logradouro + ", " + data.bairro;
-                document.getElementById(tipo + '_cidade').value = data.localidade + "/" + data.uf;
-            }
-        }
-    }
-
     async function gerarPDF() {
         const { jsPDF } = window.jspdf;
-        let dVenc = document.getElementById('vencimento').value.split('-');
-        let dataF = dVenc[2] + '/' + dVenc[1] + '/' + dVenc[0];
+        const dV = document.getElementById('vencimento').value.split('-');
+        const dataF = dV.length === 3 ? dV[2] + '/' + dV[1] + '/' + dV[0] : "__/__/____";
 
-        // Preenchimento do PDF
+        // Preencher Template
         document.getElementById('p_venc_topo').innerText = "Vencimento: " + dataF;
         document.getElementById('p_venc_corpo').innerText = dataF;
         document.getElementById('p_ben_nome').innerText = document.getElementById('ben_nome').value.toUpperCase();
-        document.getElementById('p_ben_endereco').innerText = document.getElementById('ben_endereco').value + " - " + document.getElementById('ben_cidade').value;
-        document.getElementById('p_valor_num').innerText = parseFloat(document.getElementById('valor').value).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+        document.getElementById('p_ben_endereco_completo').innerText = document.getElementById('ben_endereco').value + ", nº " + document.getElementById('ben_numero').value + " - " + document.getElementById('ben_cidade').value;
+        document.getElementById('p_valor_num').innerText = parseFloat(document.getElementById('valor').value || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2});
         document.getElementById('p_valor_extenso').innerText = document.getElementById('extenso').value;
         document.getElementById('p_emi_nome').innerText = document.getElementById('emi_nome').value.toUpperCase();
-        document.getElementById('p_emi_endereco').innerText = document.getElementById('emi_endereco').value + " - " + document.getElementById('emi_cidade').value;
+        document.getElementById('p_emi_endereco_completo').innerText = document.getElementById('emi_endereco').value + ", nº " + document.getElementById('emi_numero').value + " - " + document.getElementById('emi_cidade').value;
         document.getElementById('p_local').innerText = document.getElementById('local_emissao').value;
         document.getElementById('p_hoje').innerText = new Date().toLocaleDateString('pt-BR');
         document.getElementById('p_sign_emi').innerText = document.getElementById('emi_nome').value;
@@ -185,7 +211,7 @@
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('p', 'mm', 'a4');
         pdf.addImage(imgData, 'PNG', 10, 20, 190, 120);
-        pdf.save(`Promissoria_${document.getElementById('emi_nome').value}.pdf`);
+        pdf.save(`Promissoria.pdf`);
         el.style.display = 'none';
     }
 </script>
