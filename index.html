@@ -3,207 +3,210 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Nota Promissória</title>
+    <title>Gerador de Nota Promissória Premium</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
-        .container { max-width: 900px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin: auto; }
-        h2 { text-align: center; color: #1a5c37; border-bottom: 2px solid #27ae60; padding-bottom: 10px; }
-        .section-title { grid-column: span 2; background: #f8f9fa; padding: 8px; font-weight: bold; margin-top: 15px; border-left: 4px solid #27ae60; font-size: 14px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        label { display: block; font-weight: 600; font-size: 12px; margin-bottom: 5px; color: #444; }
-        input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; background: #fff; font-size: 14px; }
-        input:read-only { background: #f9f9f9; color: #777; }
+        :root { --primary: #1b5e20; --secondary: #fbc02d; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); padding: 20px; }
+        .container { max-width: 950px; background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: auto; border-top: 10px solid var(--primary); }
+        h2 { text-align: center; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; }
+        .section-title { grid-column: span 2; background: #e8f5e9; padding: 12px; font-weight: bold; margin-top: 20px; border-radius: 5px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        label { display: block; font-weight: 600; font-size: 13px; color: #555; margin-bottom: 5px; }
+        input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; transition: 0.3s; }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 8px rgba(27,94,32,0.2); outline: none; }
         .full-width { grid-column: span 2; }
-        .extenso-view { background: #e9f7ef !important; font-weight: bold; color: #1e8449; }
-        button { width: 100%; padding: 18px; background: #27ae60; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 25px; }
-        button:hover { background: #219150; }
-        
-        /* Estilo do PDF */
-        #promissoria-print { padding: 50px; border: 2px solid #000; width: 800px; display: none; background: white; color: #000; }
-        .header-p { font-size: 24px; font-weight: bold; border-bottom: 3px solid #000; padding-bottom: 10px; margin-bottom: 40px; text-align: center; }
-        .body-p { font-size: 18px; line-height: 2; text-align: justify; }
-        .footer-p { margin-top: 80px; display: flex; justify-content: space-between; }
-        .sig-box { text-align: center; width: 45%; }
-        .line { border-top: 1px solid #000; margin-bottom: 5px; }
+        .valor-box { background: #fffde7; border: 2px solid var(--secondary); font-size: 18px; font-weight: bold; text-align: center; color: #000; }
+        .extenso-view { background: #f1f8e9 !important; font-weight: bold; color: var(--primary); border: 1px dashed var(--primary); }
+        button { width: 100%; padding: 20px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 30px; transition: 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        button:hover { background: #2e7d32; transform: translateY(-2px); }
+
+        /* ESTILO DA PROMISSÓRIA COMERCIAL (PDF) */
+        #promissoria-print { 
+            width: 850px; padding: 40px; background: #fffcf0; color: #000; display: none;
+            border: 8px double var(--primary); position: relative;
+        }
+        .p-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 25px; }
+        .p-num { font-size: 24px; font-weight: bold; color: var(--primary); }
+        .p-valor-tag { background: var(--primary); color: white; padding: 10px 20px; font-size: 22px; border-radius: 5px; }
+        .p-body { font-family: 'Times New Roman', serif; font-size: 19px; line-height: 1.8; text-align: justify; }
+        .p-footer { margin-top: 60px; display: flex; justify-content: space-around; }
+        .p-sig { text-align: center; width: 40%; font-family: sans-serif; font-size: 14px; }
+        .p-line { border-top: 1px solid #000; margin-bottom: 5px; }
+        .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 80px; color: rgba(0,0,0,0.03); font-weight: bold; pointer-events: none; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Gerador de Nota Promissória</h2>
+    <h2>Nota Promissória Comercial</h2>
     
     <div class="grid">
-        <div class="section-title">DADOS DO BENEFICIÁRIO (QUEM RECEBE)</div>
+        <div class="section-title">👤 DADOS DO BENEFICIÁRIO (QUEM RECEBE)</div>
         <div class="full-width">
             <label>Nome Completo:</label>
-            <input type="text" id="ben_nome">
+            <input type="text" id="ben_nome" placeholder="Nome do Credor">
         </div>
         <div>
-            <label>CEP do Beneficiário:</label>
-            <input type="text" id="ben_cep" placeholder="00000000" onblur="buscaCEP('ben')">
+            <label>CPF:</label>
+            <input type="text" id="ben_cpf" placeholder="000.000.000-00" oninput="mCPF(this)">
         </div>
         <div>
-            <label>Cidade/UF:</label>
-            <input type="text" id="ben_cidade" readonly>
+            <label>RG:</label>
+            <input type="text" id="ben_rg" placeholder="00.000.000-0" oninput="mRG(this)">
+        </div>
+        <div>
+            <label>Telefone:</label>
+            <input type="text" id="ben_tel" placeholder="(00) 00000-0000" oninput="mTel(this)">
+        </div>
+        <div>
+            <label>CEP:</label>
+            <input type="text" id="ben_cep" placeholder="00000-000" onblur="buscaCEP('ben')">
         </div>
         <div class="full-width">
-            <label>Endereço (Rua/Bairro):</label>
-            <input type="text" id="ben_endereco">
-        </div>
-        <div>
-            <label>Número Residência:</label>
-            <input type="text" id="ben_numero">
+            <label>Endereço Completo:</label>
+            <input type="text" id="ben_endereco" placeholder="Rua, Bairro, Nº, Cidade/UF">
         </div>
 
-        <div class="section-title">VALOR DA PROMISSÓRIA</div>
+        <div class="section-title">💰 VALOR DA OBRIGAÇÃO</div>
         <div>
-            <label>Valor (R$):</label>
-            <input type="text" id="valor" placeholder="0,00" oninput="formatarMoeda(this)">
+            <label>Valor R$:</label>
+            <input type="text" id="valor" class="valor-box" placeholder="0,00" oninput="mMoeda(this)">
         </div>
         <div class="full-width">
             <label>Valor por Extenso:</label>
             <input type="text" id="extenso" class="extenso-view" readonly>
         </div>
 
-        <div class="section-title">DADOS DO EMITENTE (QUEM DEVE)</div>
+        <div class="section-title">✍️ DADOS DO EMITENTE (DEVEDOR)</div>
         <div class="full-width">
             <label>Nome Completo:</label>
             <input type="text" id="emi_nome">
         </div>
         <div>
-            <label>CEP do Emitente:</label>
-            <input type="text" id="emi_cep" placeholder="00000000" onblur="buscaCEP('emi')">
-        </div>
-        <div>
-            <label>Cidade/UF:</label>
-            <input type="text" id="emi_cidade" readonly>
+            <label>CEP:</label>
+            <input type="text" id="emi_cep" onblur="buscaCEP('emi')">
         </div>
         <div class="full-width">
-            <label>Endereço (Rua/Bairro):</label>
+            <label>Endereço Completo:</label>
             <input type="text" id="emi_endereco">
         </div>
-        <div>
-            <label>Número Residência:</label>
-            <input type="text" id="emi_numero">
-        </div>
-
         <div class="full-width">
-            <label>Local de Emissão (Cidade):</label>
+            <label>Cidade/Local de Emissão:</label>
             <input type="text" id="local_emissao">
         </div>
     </div>
 
-    <button onclick="gerarPDF()">GERAR PDF AGORA</button>
+    <button onclick="gerarPDF()">GERAR PROMISSÓRIA PROFISSIONAL</button>
 </div>
 
 <div id="promissoria-print">
-    <div class="header-p">NOTA PROMISSÓRIA</div>
-    <div class="body-p">
+    <div class="watermark">Nota Promissória</div>
+    <div class="p-header">
+        <div class="p-num">Nº 01/01</div>
+        <div class="p-valor-tag">R$ <span id="p_val"></span></div>
+    </div>
+    <div class="p-body">
         Pagarei por esta única via de NOTA PROMISSÓRIA a 
-        <strong><span id="p_ben_nome"></span></strong>, residente em <span id="p_ben_endereco_completo"></span>, 
-        ou à sua ordem, a quantia de <strong>R$ <span id="p_valor_num"></span></strong> 
-        (<strong id="p_valor_extenso"></strong>) em moeda corrente nacional.
+        <strong><span id="p_ben_n"></span></strong><span id="p_ben_docs"></span>, 
+        residente em <span id="p_ben_end"></span>, ou à sua ordem, a quantia de 
+        <strong><span id="p_ext"></span></strong> em moeda corrente nacional.
         <br><br>
-        <strong>EMITENTE (Devedor):</strong> <span id="p_emi_nome"></span><br>
-        <strong>ENDEREÇO DO EMITENTE:</strong> <span id="p_emi_endereco_completo"></span>
+        <strong>EMITENTE:</strong> <span id="p_emi_n"></span><br>
+        <strong>ENDEREÇO:</strong> <span id="p_emi_end"></span>
     </div>
-    <div class="footer-p">
-        <div class="sig-box">
-            <div class="line"></div>
-            <strong><span id="p_sign_emi"></span></strong><br>Emitente
-        </div>
-        <div class="sig-box">
-            <div class="line"></div>
-            <strong><span id="p_sign_ben"></span></strong><br>Beneficiário
-        </div>
+    <div class="p-footer">
+        <div class="p-sig"><div class="p-line"></div><strong><span id="p_s_emi"></span></strong><br>EMITENTE</div>
+        <div class="p-sig"><div class="p-line"></div><strong><span id="p_s_ben"></span></strong><br>BENEFICIÁRIO</div>
     </div>
-    <div style="margin-top: 50px; text-align: center; font-size: 12px;">
-        Emitida em <span id="p_local"></span>, em <span id="p_hoje"></span>.
+    <div style="margin-top: 50px; text-align: center; font-size: 14px; font-weight: bold; color: var(--primary);">
+        Emitida em <span id="p_loc"></span>, em <span id="p_hoje"></span>.
     </div>
 </div>
 
 <script>
-    // MÁSCARA MONETÁRIA CORRIGIDA
-    function formatarMoeda(campo) {
-        let v = campo.value.replace(/\D/g,'');
+    // MÁSCARAS
+    function mMoeda(i) {
+        let v = i.value.replace(/\D/g,'');
         v = (v/100).toFixed(2) + '';
         v = v.replace(".", ",");
         v = v.replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,");
         v = v.replace(/(\d)(\d{3}),/g, "$1.$2,");
-        campo.value = v;
-        
-        // Converte para extenso conforme digita
-        let valorPuro = parseFloat(v.replace(/\./g, '').replace(',', '.'));
-        document.getElementById('extenso').value = numeroParaExtenso(valorPuro);
+        i.value = v;
+        document.getElementById('extenso').value = nExtenso(parseFloat(v.replace(/\./g, '').replace(',', '.')));
+    }
+    function mCPF(i) {
+        i.value = i.value.replace(/\D/g,'').replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d{1,2})$/,"-$1");
+    }
+    function mRG(i) {
+        i.value = i.value.replace(/\D/g,'').replace(/(\d{2})(\d)/,"$1.$2").replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d{1})$/,"-$1");
+    }
+    function mTel(i) {
+        i.value = i.value.replace(/\D/g,'').replace(/^(\d{2})(\d)/g,"($1) $2").replace(/(\d{5})(\d)/,"$1-$2");
     }
 
-    async function buscaCEP(tipo) {
-        const cep = document.getElementById(tipo + '_cep').value.replace(/\D/g, '');
-        if (cep.length === 8) {
-            document.getElementById(tipo + '_cidade').value = "Buscando...";
-            const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-            const data = await resp.json();
-            if (!data.erro) {
-                document.getElementById(tipo + '_endereco').value = data.logradouro + ", " + data.bairro;
-                document.getElementById(tipo + '_cidade').value = data.localidade + "/" + data.uf;
-            } else {
-                alert("CEP não encontrado.");
-                document.getElementById(tipo + '_cidade').value = "";
-            }
+    async function buscaCEP(t) {
+        let c = document.getElementById(t+'_cep').value.replace(/\D/g,'');
+        if(c.length===8) {
+            const r = await fetch(`https://viacep.com.br/ws/${c}/json/`);
+            const d = await r.json();
+            if(!d.erro) document.getElementById(t+'_endereco').value = `${d.logradouro}, ${d.bairro} - ${d.localidade}/${d.uf}`;
         }
     }
 
-    function numeroParaExtenso(n) {
+    function nExtenso(n) {
         if (!n || isNaN(n)) return '';
         let num = parseFloat(n).toFixed(2).split('.');
-        let inteiro = parseInt(num[0]);
-        let centavos = parseInt(num[1]);
-        const unidades = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"];
-        const dez1 = ["dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
-        const dezenas = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
-        const centenas = ["", "cem", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
-
-        function conv(n) {
+        let int = parseInt(num[0]), cent = parseInt(num[1]);
+        const und = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"];
+        const d1 = ["dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+        const dez = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
+        const ce = ["", "cem", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
+        function c(n) {
             if (n === 100) return "cem";
-            if (n < 10) return unidades[n];
-            if (n < 20) return dez1[n - 10];
-            if (n < 100) return dezenas[Math.floor(n/10)] + (n%10 > 0 ? " e " + unidades[n%10] : "");
-            if (n < 1000) return (Math.floor(n/100) === 1 && n%100 > 0 ? "cento" : centenas[Math.floor(n/100)]) + (n%100 > 0 ? " e " + conv(n%100) : "");
-            if (n < 1000000) return (Math.floor(n/1000) === 1 ? "mil" : conv(Math.floor(n/1000)) + " mil") + (n%1000 > 0 ? " e " + conv(n%1000) : "");
+            if (n < 10) return und[n];
+            if (n < 20) return d1[n - 10];
+            if (n < 100) return dez[Math.floor(n/10)] + (n%10 > 0 ? " e " + und[n%10] : "");
+            if (n < 1000) return (Math.floor(n/100) === 1 && n%100 > 0 ? "cento" : ce[Math.floor(n/100)]) + (n%100 > 0 ? " e " + c(n%100) : "");
+            if (n < 1000000) return (Math.floor(n/1000) === 1 ? "mil" : c(Math.floor(n/1000)) + " mil") + (n%1000 > 0 ? " e " + c(n%1000) : "");
             return n;
         }
-        let res = (inteiro > 0 ? conv(inteiro) + (inteiro === 1 ? " real" : " reais") : "") + (centavos > 0 ? (inteiro > 0 ? " e " : "") + conv(centavos) + (centavos === 1 ? " centavo" : " centavos") : "");
-        return res.charAt(0).toUpperCase() + res.slice(1);
+        let r = (int > 0 ? c(int) + (int === 1 ? " real" : " reais") : "") + (cent > 0 ? (int > 0 ? " e " : "") + c(cent) + (cent === 1 ? " centavo" : " centavos") : "");
+        return r.charAt(0).toUpperCase() + r.slice(1);
     }
 
     async function gerarPDF() {
         const { jsPDF } = window.jspdf;
         
-        // Mapeia dados
-        document.getElementById('p_ben_nome').innerText = document.getElementById('ben_nome').value.toUpperCase();
-        document.getElementById('p_ben_endereco_completo').innerText = document.getElementById('ben_endereco').value + ", nº " + document.getElementById('ben_numero').value + " - " + document.getElementById('ben_cidade').value;
-        document.getElementById('p_valor_num').innerText = document.getElementById('valor').value;
-        document.getElementById('p_valor_extenso').innerText = document.getElementById('extenso').value;
-        document.getElementById('p_emi_nome').innerText = document.getElementById('emi_nome').value.toUpperCase();
-        document.getElementById('p_emi_endereco_completo').innerText = document.getElementById('emi_endereco').value + ", nº " + document.getElementById('emi_numero').value + " - " + document.getElementById('emi_cidade').value;
-        document.getElementById('p_local').innerText = document.getElementById('local_emissao').value;
+        // Lógica de Documentos Dinâmicos (Só aparece se preenchido)
+        let docs = "";
+        let cpf = document.getElementById('ben_cpf').value;
+        let rg = document.getElementById('ben_rg').value;
+        let tel = document.getElementById('ben_tel').value;
+        
+        if(cpf) docs += `, portador do CPF nº ${cpf}`;
+        if(rg) docs += `, RG nº ${rg}`;
+        if(tel) docs += `, Telefone: ${tel}`;
+        
+        document.getElementById('p_ben_docs').innerText = docs;
+        document.getElementById('p_ben_n').innerText = document.getElementById('ben_nome').value;
+        document.getElementById('p_ben_end').innerText = document.getElementById('ben_endereco').value;
+        document.getElementById('p_val').innerText = document.getElementById('valor').value;
+        document.getElementById('p_ext').innerText = document.getElementById('extenso').value;
+        document.getElementById('p_emi_n').innerText = document.getElementById('emi_nome').value;
+        document.getElementById('p_emi_end').innerText = document.getElementById('emi_endereco').value;
+        document.getElementById('p_loc').innerText = document.getElementById('local_emissao').value;
         document.getElementById('p_hoje').innerText = new Date().toLocaleDateString('pt-BR');
-        document.getElementById('p_sign_emi').innerText = document.getElementById('emi_nome').value;
-        document.getElementById('p_sign_ben').innerText = document.getElementById('ben_nome').value;
+        document.getElementById('p_s_emi').innerText = document.getElementById('emi_nome').value;
+        document.getElementById('p_s_ben').innerText = document.getElementById('ben_nome').value;
 
         const el = document.getElementById('promissoria-print');
         el.style.display = 'block';
-        
         const canvas = await html2canvas(el, { scale: 2 });
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        
-        // Ajuste da imagem no PDF
-        pdf.addImage(imgData, 'PNG', 10, 20, 190, 115);
-        pdf.save(`Promissoria.pdf`);
-        
+        const pdf = new jsPDF('l', 'mm', 'a4'); // 'l' para paisagem (fica mais bonito)
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 30, 277, 140);
+        pdf.save(`Promissoria_${document.getElementById('emi_nome').value}.pdf`);
         el.style.display = 'none';
     }
 </script>
