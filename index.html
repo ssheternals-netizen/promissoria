@@ -3,29 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Nota Promissória Profissional</title>
+    <title>Gerador de Nota Promissória</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eef2f7; padding: 20px; color: #333; }
-        .container { max-width: 850px; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin: auto; }
-        h2 { text-align: center; color: #2c3e50; margin-bottom: 30px; border-bottom: 2px solid #27ae60; padding-bottom: 10px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 13px; text-transform: uppercase; color: #666; }
-        input { width: 100%; padding: 12px; border: 1px solid #dcdde1; border-radius: 6px; box-sizing: border-box; transition: 0.3s; }
-        input:focus { border-color: #27ae60; outline: none; box-shadow: 0 0 8px rgba(39, 174, 96, 0.2); }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 900px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin: auto; }
+        h2 { text-align: center; color: #1a5c37; border-bottom: 2px solid #27ae60; padding-bottom: 10px; }
+        .section-title { grid-column: span 2; background: #f8f9fa; padding: 8px; font-weight: bold; margin-top: 15px; border-left: 4px solid #27ae60; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        label { display: block; font-weight: 600; font-size: 12px; margin-bottom: 5px; color: #444; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
         .full-width { grid-column: span 2; }
-        .extenso-box { background: #f9f9f9; font-weight: bold; color: #27ae60; }
-        button { width: 100%; padding: 18px; background: #27ae60; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 30px; transition: 0.3s; }
-        button:hover { background: #219150; transform: translateY(-2px); }
+        .extenso-view { background: #e9f7ef; font-weight: bold; color: #1e8449; }
+        button { width: 100%; padding: 18px; background: #27ae60; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 25px; }
+        button:hover { background: #219150; }
         
-        /* Layout da Promissória Oculta */
-        #promissoria-print { padding: 50px; border: 3px solid #000; width: 800px; display: none; background: white; color: #000; position: relative; }
-        .header-p { display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 30px; }
-        .body-p { font-size: 16px; line-height: 1.8; text-align: justify; }
-        .footer-p { margin-top: 80px; display: flex; justify-content: space-between; }
-        .signature-box { text-align: center; width: 45%; }
-        .line { border-top: 1px solid #000; margin-bottom: 10px; }
+        /* Estilo do PDF */
+        #promissoria-print { padding: 40px; border: 2px solid #000; width: 800px; display: none; background: white; color: #000; }
+        .header-p { display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 25px; }
+        .body-p { font-size: 15px; line-height: 1.7; text-align: justify; }
+        .footer-p { margin-top: 60px; display: flex; justify-content: space-between; }
+        .sig-box { text-align: center; width: 45%; }
+        .line { border-top: 1px solid #000; margin-bottom: 5px; }
     </style>
 </head>
 <body>
@@ -33,173 +33,161 @@
 <div class="container">
     <h2>Gerador de Nota Promissória</h2>
     <div class="grid">
+        <div class="section-title">DADOS DO BENEFICIÁRIO (QUEM RECEBE)</div>
         <div class="full-width">
-            <label>Nome do Beneficiário (Quem recebe o dinheiro):</label>
-            <input type="text" id="beneficiario" placeholder="Ex: Nome da Empresa ou Pessoa">
+            <label>Nome Completo:</label>
+            <input type="text" id="ben_nome" placeholder="Ex: José da Silva">
         </div>
         <div>
-            <label>Valor Numérico (R$):</label>
-            <input type="number" id="valor" oninput="atualizarExtenso()" placeholder="Ex: 10000">
+            <label>CEP:</label>
+            <input type="text" id="ben_cep" maxlength="8" onblur="buscaCEP('ben')" placeholder="Apenas números">
+        </div>
+        <div>
+            <label>Cidade/UF:</label>
+            <input type="text" id="ben_cidade" readonly>
+        </div>
+        <div class="full-width">
+            <label>Endereço e Número:</label>
+            <input type="text" id="ben_endereco" placeholder="Rua, Bairro, nº">
+        </div>
+
+        <div class="section-title">VALOR E VENCIMENTO</div>
+        <div>
+            <label>Valor (R$):</label>
+            <input type="number" id="valor" oninput="atualizarExtenso()" placeholder="0.00">
         </div>
         <div>
             <label>Data de Vencimento:</label>
             <input type="date" id="vencimento">
         </div>
         <div class="full-width">
-            <label>Valor por Extenso (Automático):</label>
-            <input type="text" id="extenso" class="extenso-box" readonly>
+            <label>Valor por Extenso:</label>
+            <input type="text" id="extenso" class="extenso-view" readonly>
         </div>
+
+        <div class="section-title">DADOS DO EMITENTE (QUEM DEVE)</div>
         <div class="full-width">
-            <label>Nome do Emitente (Quem deve / paga):</label>
-            <input type="text" id="emissor" placeholder="Ex: Nome de quem está devendo">
+            <label>Nome Completo:</label>
+            <input type="text" id="emi_nome" placeholder="Ex: Maria de Oliveira">
         </div>
         <div>
-            <label>CEP do Emitente:</label>
-            <input type="text" id="cep" maxlength="8" onblur="buscaCEP()" placeholder="Apenas números">
+            <label>CEP:</label>
+            <input type="text" id="emi_cep" maxlength="8" onblur="buscaCEP('emi')" placeholder="Apenas números">
         </div>
         <div>
             <label>Cidade/UF:</label>
-            <input type="text" id="cidade" readonly>
+            <input type="text" id="emi_cidade" readonly>
         </div>
         <div class="full-width">
-            <label>Endereço Completo:</label>
-            <input type="text" id="endereco">
+            <label>Endereço e Número:</label>
+            <input type="text" id="emi_endereco" placeholder="Rua, Bairro, nº">
         </div>
-        <div>
-            <label>Número da Residência:</label>
-            <input type="text" id="numero">
-        </div>
-        <div>
-            <label>Local de Emissão:</label>
-            <input type="text" id="local_emissao" placeholder="Ex: São Paulo - SP">
+
+        <div class="full-width">
+            <label>Local de Emissão (Cidade onde está assinando):</label>
+            <input type="text" id="local_emissao" placeholder="Ex: Curitiba - PR">
         </div>
     </div>
-    <button onclick="gerarPDF()">GERAR PDF PARA ASSINATURA</button>
+    <button onclick="gerarPDF()">GERAR PDF (VIA ÚNICA)</button>
 </div>
 
 <div id="promissoria-print">
     <div class="header-p">
         <span>NOTA PROMISSÓRIA</span>
-        <span id="p_venc_top">Vencimento: __/__/____</span>
+        <span id="p_venc_topo">Vencimento: __/__/____</span>
     </div>
     <div class="body-p">
-        No dia <strong><span id="p_venc_data"></span></strong>, pagarei por esta única via de NOTA PROMISSÓRIA a 
-        <strong><span id="p_beneficiario"></span></strong>, ou à sua ordem, a quantia de 
-        <strong>R$ <span id="p_valor_num"></span></strong> 
-        (<strong id="p_valor_extenso"></strong>) em moeda corrente deste país.
+        No dia <strong><span id="p_venc_corpo"></span></strong>, pagarei por esta única via de NOTA PROMISSÓRIA a 
+        <strong><span id="p_ben_nome"></span></strong>, residente em <span id="p_ben_endereco"></span>, 
+        ou à sua ordem, a quantia de <strong>R$ <span id="p_valor_num"></span></strong> 
+        (<strong id="p_valor_extenso"></strong>) em moeda corrente nacional.
         <br><br>
-        <strong>EMITENTE:</strong> <span id="p_emissor"></span><br>
-        <strong>ENDEREÇO:</strong> <span id="p_completo"></span>
+        <strong>EMITENTE:</strong> <span id="p_emi_nome"></span><br>
+        <strong>ENDEREÇO DO EMITENTE:</strong> <span id="p_emi_endereco"></span>
     </div>
     <div class="footer-p">
-        <div class="signature-box">
+        <div class="sig-box">
             <div class="line"></div>
-            <strong><span id="p_sign_emissor"></span></strong><br>Emitente
+            <strong><span id="p_sign_emi"></span></strong><br>Emitente (Devedor)
         </div>
-        <div class="signature-box">
+        <div class="sig-box">
             <div class="line"></div>
-            <strong><span id="p_sign_beneficiario"></span></strong><br>Beneficiário
+            <strong><span id="p_sign_ben"></span></strong><br>Beneficiário (Credor)
         </div>
     </div>
-    <div style="margin-top: 40px; font-size: 12px; text-align: center; border-top: 1px dashed #ccc; padding-top: 10px;">
-        Emitida em <span id="p_local_footer"></span>, no dia <span id="p_hoje"></span>.
+    <div style="margin-top: 40px; text-align: center; font-size: 11px;">
+        Emitida em <span id="p_local"></span>, em <span id="p_hoje"></span>.
     </div>
 </div>
 
 <script>
-    // Lógica para Valor por Extenso
     function numeroParaExtenso(n) {
         if (!n) return '';
         let num = parseFloat(n).toFixed(2).split('.');
         let inteiro = parseInt(num[0]);
         let centavos = parseInt(num[1]);
-
         const unidades = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"];
-        const dezena1 = ["dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+        const dez1 = ["dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
         const dezenas = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
         const centenas = ["", "cem", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
 
-        function converte(n) {
+        function conv(n) {
             if (n === 100) return "cem";
             if (n < 10) return unidades[n];
-            if (n < 20) return dezena1[n - 10];
-            if (n < 100) {
-                let d = Math.floor(n / 10);
-                let u = n % 10;
-                return dezenas[d] + (u > 0 ? " e " + unidades[u] : "");
-            }
-            if (n < 1000) {
-                let c = Math.floor(n / 100);
-                let resto = n % 100;
-                let texto = (c === 1 && resto > 0) ? "cento" : centenas[c];
-                return texto + (resto > 0 ? " e " + converte(resto) : "");
-            }
-            if (n < 1000000) {
-                let mil = Math.floor(n / 1000);
-                let resto = n % 1000;
-                let tMil = (mil === 1) ? "mil" : converte(mil) + " mil";
-                return tMil + (resto > 0 ? " e " + converte(resto) : "");
-            }
+            if (n < 20) return dez1[n - 10];
+            if (n < 100) return dezenas[Math.floor(n/10)] + (n%10 > 0 ? " e " + unidades[n%10] : "");
+            if (n < 1000) return (Math.floor(n/100) === 1 && n%100 > 0 ? "cento" : centenas[Math.floor(n/100)]) + (n%100 > 0 ? " e " + conv(n%100) : "");
+            if (n < 1000000) return (Math.floor(n/1000) === 1 ? "mil" : conv(Math.floor(n/1000)) + " mil") + (n%1000 > 0 ? " e " + conv(n%1000) : "");
             return n;
         }
-
-        let textoInteiro = (inteiro === 0) ? "" : converte(inteiro) + (inteiro === 1 ? " real" : " reais");
-        let textoCentavos = (centavos === 0) ? "" : (inteiro > 0 ? " e " : "") + converte(centavos) + (centavos === 1 ? " centavo" : " centavos");
-        
-        let resultado = textoInteiro + textoCentavos;
-        return resultado.charAt(0).toUpperCase() + resultado.slice(1);
+        let res = (inteiro > 0 ? conv(inteiro) + (inteiro === 1 ? " real" : " reais") : "") + (centavos > 0 ? (inteiro > 0 ? " e " : "") + conv(centavos) + (centavos === 1 ? " centavo" : " centavos") : "");
+        return res.charAt(0).toUpperCase() + res.slice(1);
     }
 
     function atualizarExtenso() {
-        let v = document.getElementById('valor').value;
-        document.getElementById('extenso').value = numeroParaExtenso(v);
+        document.getElementById('extenso').value = numeroParaExtenso(document.getElementById('valor').value);
     }
 
-    async function buscaCEP() {
-        let cep = document.getElementById('cep').value.replace(/\D/g, '');
+    async function buscaCEP(tipo) {
+        let cep = document.getElementById(tipo + '_cep').value.replace(/\D/g, '');
         if (cep.length === 8) {
             const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
             const data = await resp.json();
             if (!data.erro) {
-                document.getElementById('endereco').value = data.logradouro + ", " + data.bairro;
-                document.getElementById('cidade').value = data.localidade + "/" + data.uf;
+                document.getElementById(tipo + '_endereco').value = data.logradouro + ", " + data.bairro;
+                document.getElementById(tipo + '_cidade').value = data.localidade + "/" + data.uf;
             }
         }
     }
 
     async function gerarPDF() {
         const { jsPDF } = window.jspdf;
-        
-        // Formata data de vencimento
-        let dataVencRaw = document.getElementById('vencimento').value.split('-');
-        let dataFormatada = dataVencRaw[2] + '/' + dataVencRaw[1] + '/' + dataVencRaw[0];
+        let dVenc = document.getElementById('vencimento').value.split('-');
+        let dataF = dVenc[2] + '/' + dVenc[1] + '/' + dVenc[0];
 
-        // Preenche Template
-        document.getElementById('p_venc_top').innerText = "Vencimento: " + dataFormatada;
-        document.getElementById('p_venc_data').innerText = dataFormatada;
-        document.getElementById('p_beneficiario').innerText = document.getElementById('beneficiario').value.toUpperCase();
+        // Preenchimento do PDF
+        document.getElementById('p_venc_topo').innerText = "Vencimento: " + dataF;
+        document.getElementById('p_venc_corpo').innerText = dataF;
+        document.getElementById('p_ben_nome').innerText = document.getElementById('ben_nome').value.toUpperCase();
+        document.getElementById('p_ben_endereco').innerText = document.getElementById('ben_endereco').value + " - " + document.getElementById('ben_cidade').value;
         document.getElementById('p_valor_num').innerText = parseFloat(document.getElementById('valor').value).toLocaleString('pt-BR', {minimumFractionDigits: 2});
         document.getElementById('p_valor_extenso').innerText = document.getElementById('extenso').value;
-        document.getElementById('p_emissor').innerText = document.getElementById('emissor').value.toUpperCase();
-        document.getElementById('p_completo').innerText = `${document.getElementById('endereco').value}, nº ${document.getElementById('numero').value}, ${document.getElementById('cidade').value}`;
-        document.getElementById('p_local_footer').innerText = document.getElementById('local_emissao').value;
+        document.getElementById('p_emi_nome').innerText = document.getElementById('emi_nome').value.toUpperCase();
+        document.getElementById('p_emi_endereco').innerText = document.getElementById('emi_endereco').value + " - " + document.getElementById('emi_cidade').value;
+        document.getElementById('p_local').innerText = document.getElementById('local_emissao').value;
         document.getElementById('p_hoje').innerText = new Date().toLocaleDateString('pt-BR');
-        document.getElementById('p_sign_emissor').innerText = document.getElementById('emissor').value;
-        document.getElementById('p_sign_beneficiario').innerText = document.getElementById('beneficiario').value;
+        document.getElementById('p_sign_emi').innerText = document.getElementById('emi_nome').value;
+        document.getElementById('p_sign_ben').innerText = document.getElementById('ben_nome').value;
 
-        const element = document.getElementById('promissoria-print');
-        element.style.display = 'block';
-
-        const canvas = await html2canvas(element, { scale: 2 });
+        const el = document.getElementById('promissoria-print');
+        el.style.display = 'block';
+        const canvas = await html2canvas(el, { scale: 2 });
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('p', 'mm', 'a4');
-        
-        pdf.addImage(imgData, 'PNG', 10, 20, 190, 110);
-        pdf.save(`Promissoria_${document.getElementById('emissor').value}.pdf`);
-        
-        element.style.display = 'none';
+        pdf.addImage(imgData, 'PNG', 10, 20, 190, 120);
+        pdf.save(`Promissoria_${document.getElementById('emi_nome').value}.pdf`);
+        el.style.display = 'none';
     }
 </script>
-
 </body>
 </html>
