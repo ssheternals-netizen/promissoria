@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nota Promissória Profissional</title>
+    <title>Nota Promissória Profissional Light</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { --p-dark: #004d40; --p-gold: #c5a059; --bg: #f8f9fa; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; color: #333; }
@@ -20,24 +19,12 @@
         .valor-input { background: #fffde7; border: 2px solid var(--p-gold); font-size: 20px; font-weight: bold; text-align: center; }
         button { width: 100%; padding: 20px; background: var(--p-dark); color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 30px; transition: 0.3s; }
         button:hover { background: #00695c; }
-
-        /* DESIGN DO PDF */
-        #promissoria-print { 
-            width: 850px; padding: 45px; background: #fffdf5; color: #000; display: none;
-            border: 10px double var(--p-dark); position: relative;
-        }
-        .p-border-inner { border: 2px solid var(--p-gold); padding: 30px; position: relative; }
-        .p-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
-        .p-valor-tag { background: var(--p-dark); color: white; padding: 12px 30px; font-size: 26px; border-radius: 4px; font-weight: bold; }
-        .p-text { font-family: 'Times New Roman', serif; font-size: 20px; line-height: 1.8; text-align: justify; }
-        .p-footer { margin-top: 80px; display: flex; justify-content: space-between; text-align: center; }
-        .p-line { border-top: 2px solid #000; width: 320px; margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Emissor de Nota Promissória Profissional</h2>
+    <h2>Emissor de Nota Promissória</h2>
     
     <div class="grid">
         <div class="section-title">Informações do Beneficiário (Credor)</div>
@@ -64,36 +51,11 @@
         <div class="full-width"><label>Cidade de Emissão:</label><input type="text" id="local_emissao"></div>
     </div>
 
-    <button onclick="gerarPDF()">GERAR PDF E SALVAR DADOS DO EMITENTE</button>
-</div>
-
-<div id="promissoria-print">
-    <div class="p-border-inner">
-        <div class="p-header">
-            <div style="font-size:28px; font-weight:900; color:var(--p-dark)">NOTA PROMISSÓRIA</div>
-            <div class="p-valor-tag">R$ <span id="pdf_val"></span></div>
-        </div>
-        <div class="p-text">
-            Pagarei por esta única via de NOTA PROMISSÓRIA a 
-            <strong><span id="pdf_ben_nome"></span></strong><span id="pdf_ben_docs"></span>, 
-            residente em <span id="pdf_ben_end"></span>, ou à sua ordem, a quantia de 
-            <strong><span id="pdf_extenso"></span></strong> em moeda corrente nacional.
-            <br><br>
-            <strong>EMITENTE:</strong> <span id="pdf_emi_nome"></span><br>
-            <strong>ENDEREÇO:</strong> <span id="pdf_emi_end"></span>
-        </div>
-        <div class="p-footer">
-            <div><div class="p-line"></div><strong><span id="sig_emi"></span></strong><br>ASSINATURA DO EMITENTE</div>
-            <div><div class="p-line"></div><strong><span id="sig_ben"></span></strong><br>ASSINATURA DO BENEFICIÁRIO</div>
-        </div>
-        <div style="margin-top:40px; text-align:center; font-weight:bold; color:var(--p-dark);">
-            Emitida em <span id="pdf_local"></span>, em <span id="pdf_data"></span>.
-        </div>
-    </div>
+    <button onclick="gerarPDF()">GERAR PDF ULTRA LEVE</button>
 </div>
 
 <script>
-    // Carregar dados salvos do Emitente
+    // Memória de salvamento
     window.onload = function() {
         const dados = JSON.parse(localStorage.getItem('dadosEmitente'));
         if (dados) {
@@ -112,13 +74,10 @@
         i.value = v;
     }
 
-    // NOVA FUNÇÃO RG CORRIGIDA: XX.XXX.XXX-X
     function fRG(i) {
         let v = i.value.replace(/\D/g, "");
         if (v.length > 9) v = v.slice(0, 9);
-        v = v.replace(/(\d{2})(\d)/, "$1.$2");
-        v = v.replace(/(\d{3})(\d)/, "$1.$2");
-        v = v.replace(/(\d{3})(\d{1})$/, "$1-$2");
+        v = v.replace(/(\d{2})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1})$/, "$1-$2");
         i.value = v;
     }
 
@@ -162,7 +121,11 @@
         return r.charAt(0).toUpperCase() + r.slice(1);
     }
 
-    async function gerarPDF() {
+    function gerarPDF() {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('l', 'mm', 'a4');
+
+        // Salvar dados no LocalStorage
         const dSalvar = {
             nome: document.getElementById('emi_nome').value,
             cep: document.getElementById('emi_cep').value,
@@ -172,34 +135,72 @@
         };
         localStorage.setItem('dadosEmitente', JSON.stringify(dSalvar));
 
-        const { jsPDF } = window.jspdf;
-        let docs = "";
-        let cpf = document.getElementById('ben_cpf').value;
-        let rg = document.getElementById('ben_rg').value;
-        let tel = document.getElementById('ben_tel').value;
-        if(cpf) docs += `, portador do CPF nº ${cpf}`;
-        if(rg) docs += `, RG nº ${rg}`;
-        if(tel) docs += `, Tel: ${tel}`;
-        
-        document.getElementById('pdf_ben_docs').innerText = docs;
-        document.getElementById('pdf_ben_nome').innerText = document.getElementById('ben_nome').value.toUpperCase();
-        document.getElementById('pdf_ben_end').innerText = document.getElementById('ben_endereco').value + ", nº " + document.getElementById('ben_numero').value;
-        document.getElementById('pdf_val').innerText = document.getElementById('valor').value;
-        document.getElementById('pdf_extenso').innerText = document.getElementById('extenso').value;
-        document.getElementById('pdf_emi_nome').innerText = document.getElementById('emi_nome').value.toUpperCase();
-        document.getElementById('pdf_emi_end').innerText = document.getElementById('emi_endereco').value + ", nº " + document.getElementById('emi_numero').value;
-        document.getElementById('pdf_local').innerText = document.getElementById('local_emissao').value;
-        document.getElementById('pdf_data').innerText = new Date().toLocaleDateString('pt-BR');
-        document.getElementById('sig_emi').innerText = document.getElementById('emi_nome').value;
-        document.getElementById('sig_ben').innerText = document.getElementById('ben_nome').value;
+        // Dados
+        const ben_nome = document.getElementById('ben_nome').value.toUpperCase();
+        const ben_end = document.getElementById('ben_endereco').value + ", nº " + document.getElementById('ben_numero').value;
+        const valor_num = document.getElementById('valor').value;
+        const valor_ext = document.getElementById('extenso').value;
+        const emi_nome = document.getElementById('emi_nome').value.toUpperCase();
+        const emi_end = document.getElementById('emi_endereco').value + ", nº " + document.getElementById('emi_numero').value;
+        const local = document.getElementById('local_emissao').value;
+        const data_hoje = new Date().toLocaleDateString('pt-BR');
 
-        const el = document.getElementById('promissoria-print');
-        el.style.display = 'block';
-        const canvas = await html2canvas(el, { scale: 2 });
-        const pdf = new jsPDF('l', 'mm', 'a4');
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 25, 277, 150);
-        pdf.save(`Promissoria_${document.getElementById('emi_nome').value}.pdf`);
-        el.style.display = 'none';
+        let docs = "";
+        if(document.getElementById('ben_cpf').value) docs += " CPF: " + document.getElementById('ben_cpf').value;
+        if(document.getElementById('ben_rg').value) docs += " RG: " + document.getElementById('ben_rg').value;
+        if(document.getElementById('ben_tel').value) docs += " Tel: " + document.getElementById('ben_tel').value;
+
+        // Estilização do PDF Nativo (Super Leve)
+        pdf.setDrawColor(0, 77, 64);
+        pdf.setLineWidth(1.5);
+        pdf.rect(10, 10, 277, 190); // Borda Externa
+        
+        pdf.setDrawColor(197, 160, 89);
+        pdf.setLineWidth(0.5);
+        pdf.rect(15, 15, 267, 180); // Borda Interna Dourada
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(22);
+        pdf.setTextColor(0, 77, 64);
+        pdf.text("NOTA PROMISSÓRIA", 25, 35);
+
+        pdf.setFillColor(0, 77, 64);
+        pdf.rect(200, 25, 75, 15, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(18);
+        pdf.text("R$ " + valor_num, 205, 35);
+
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFont("times", "normal");
+        pdf.setFontSize(14);
+        
+        const corpoTexto = `Pagarei por esta única via de NOTA PROMISSÓRIA a ${ben_nome}${docs}, residente em ${ben_end}, ou à sua ordem, a quantia de ${valor_ext} em moeda corrente nacional.`;
+        
+        const splitTexto = pdf.splitTextToSize(corpoTexto, 240);
+        pdf.text(splitTexto, 25, 60);
+
+        pdf.setFont("helvetica", "bold");
+        pdf.text("EMITENTE: " + emi_nome, 25, 100);
+        pdf.setFont("helvetica", "normal");
+        pdf.text("ENDEREÇO: " + emi_end, 25, 110);
+
+        // Assinaturas
+        pdf.line(25, 155, 125, 155);
+        pdf.text("Assinatura do Emitente", 45, 162);
+        pdf.setFontSize(10);
+        pdf.text(emi_nome, 25, 152);
+
+        pdf.setFontSize(14);
+        pdf.line(160, 155, 260, 155);
+        pdf.text("Assinatura do Beneficiário", 180, 162);
+        pdf.setFontSize(10);
+        pdf.text(ben_nome, 160, 152);
+
+        pdf.setFontSize(12);
+        pdf.setFont("helvetica", "italic");
+        pdf.text(`Emitida em ${local}, em ${data_hoje}.`, 148, 185, { align: "center" });
+
+        pdf.save(`Promissoria_${emi_nome}.pdf`);
     }
 </script>
 </body>
