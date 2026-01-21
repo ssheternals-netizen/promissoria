@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Nota Promissória</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f9; padding: 20px; }
+        .container { max-width: 800px; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin: auto; }
+        h2 { text-align: center; color: #333; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+        input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .full-width { grid-column: span 2; }
+        button { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 20px; }
+        button:hover { background: #219150; }
+        
+        /* Estilo da Promissória para o PDF */
+        #promissoria-print { padding: 40px; border: 2px solid #000; width: 700px; margin-top: 50px; display: none; background: white; }
+        .header-p { display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+        .body-p { line-height: 1.6; text-align: justify; }
+        .footer-p { margin-top: 50px; display: flex; justify-content: space-around; text-align: center; }
+        .line { border-top: 1px solid #000; width: 250px; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container no-print">
+    <h2>Gerador de Nota Promissória</h2>
+    <div class="grid">
+        <div class="full-width">
+            <label>Nome do Beneficiário (Quem recebe):</label>
+            <input type="text" id="beneficiario" placeholder="Ex: João Silva">
+        </div>
+        <div>
+            <label>Valor (R$):</label>
+            <input type="number" id="valor" oninput="escreverExtenso()" placeholder="0.00">
+        </div>
+        <div>
+            <label>Vencimento:</label>
+            <input type="date" id="vencimento">
+        </div>
+        <div class="full-width">
+            <label>Valor por Extenso:</label>
+            <input type="text" id="extenso" readonly style="background: #eee;">
+        </div>
+        <div class="full-width">
+            <label>Nome do Emissor (Quem deve):</label>
+            <input type="text" id="emissor" placeholder="Ex: Maria Oliveira">
+        </div>
+        <div>
+            <label>CEP do Emissor:</label>
+            <input type="text" id="cep" maxlength="8" onblur="buscaCEP()" placeholder="Somente números">
+        </div>
+        <div>
+            <label>Cidade/UF:</label>
+            <input type="text" id="cidade" readonly>
+        </div>
+        <div class="full-width">
+            <label>Endereço:</label>
+            <input type="text" id="endereco" placeholder="Rua, Bairro...">
+        </div>
+        <div>
+            <label>Número Residência:</label>
+            <input type="text" id="numero">
+        </div>
+        <div>
+            <label>Local de Emissão:</label>
+            <input type="text" id="local_emissao" placeholder="Ex: São Paulo - SP">
+        </div>
+    </div>
+    <button onclick="gerarPDF()">GERAR PROMISSÓRIA EM PDF</button>
+</div>
+
+<div id="promissoria-print">
+    <div class="header-p">
+        <strong>NOTA PROMISSÓRIA</strong>
+        <strong id="p_vencimento">Vencimento: __/__/____</strong>
+    </div>
+    <div class="body-p">
+        Ao(s) <span id="p_data_venc">___</span> pagarei por esta única via de Nota Promissória a 
+        <strong id="p_beneficiario">___________</strong> ou à sua ordem, a quantia de 
+        <strong id="p_valor_num">R$ 0,00</strong> (<span id="p_valor_extenso">________________</span>) 
+        em moeda corrente deste país.
+        <br><br>
+        <strong>Emitente:</strong> <span id="p_emissor">___________</span><br>
+        <strong>Endereço:</strong> <span id="p_completo">___________</span>
+    </div>
+    <div class="footer-p">
+        <div>
+            <div class="line"></div>
+            <span id="p_assinatura_emissor">Assinatura do Emitente</span>
+        </div>
+        <div>
+            <div class="line"></div>
+            <span id="p_assinatura_beneficiario">Assinatura do Beneficiário</span>
+        </div>
+    </div>
+    <p style="text-align: center; margin-top: 30px; font-size: 12px;">
+        Data de Emissão: <span id="p_data_hoje"></span> | Local: <span id="p_local"></span>
+    </p>
+</div>
+
+<script>
+    // Função para buscar CEP
+    async function buscaCEP() {
+        let cep = document.getElementById('cep').value;
+        if (cep.length === 8) {
+            const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const data = await resp.json();
+            if (!data.erro) {
+                document.getElementById('endereco').value = `${data.logradouro}, ${data.bairro}`;
+                document.getElementById('cidade').value = `${data.localidade} - ${data.uf}`;
+            }
+        }
+    }
+
+    // Função Valor por Extenso Simples
+    function escreverExtenso() {
+        let valor = document.getElementById('valor').value;
+        if (!valor) return;
+        // Aqui usamos uma biblioteca ou lógica simples. Para brevidade, usaremos o valor formatado.
+        document.getElementById('extenso').value = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
+    }
+
+    async function gerarPDF() {
+        const { jsPDF } = window.jspdf;
+        
+        // Mapear dados para o template
+        document.getElementById('p_vencimento').innerText = "Vencimento: " + document.getElementById('vencimento').value;
+        document.getElementById('p_beneficiario').innerText = document.getElementById('beneficiario').value;
+        document.getElementById('p_valor_num').innerText = "R$ " + document.getElementById('valor').value;
+        document.getElementById('p_valor_extenso').innerText = document.getElementById('extenso').value;
+        document.getElementById('p_emissor').innerText = document.getElementById('emissor').value;
+        document.getElementById('p_completo').innerText = `${document.getElementById('endereco').value}, nº ${document.getElementById('numero').value} - ${document.getElementById('cidade').value}`;
+        document.getElementById('p_local').innerText = document.getElementById('local_emissao').value;
+        document.getElementById('p_data_hoje').innerText = new Date().toLocaleDateString('pt-BR');
+        document.getElementById('p_assinatura_emissor').innerText = document.getElementById('emissor').value;
+        document.getElementById('p_assinatura_beneficiario').innerText = document.getElementById('beneficiario').value;
+
+        const doc = new jsPDF('p', 'pt', 'a4');
+        const element = document.getElementById('promissoria-print');
+        element.style.display = 'block';
+
+        html2canvas(element).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            doc.addImage(imgData, 'PNG', 40, 40, 520, 300);
+            doc.save("promissoria.pdf");
+            element.style.display = 'none';
+        });
+    }
+</script>
+
+</body>
+</html>
