@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Promissórias com Memória</title>
+    <title>Sistema de Promissórias com Backup</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root { --p-dark: #004d40; --p-gold: #c5a059; --bg: #f8f9fa; }
@@ -17,12 +17,19 @@
         input:focus { border-color: var(--p-dark); box-shadow: 0 0 0 3px rgba(0,77,64,0.1); }
         .full-width { grid-column: span 2; }
         .valor-input { background: #fffde7; border: 2px solid var(--p-gold); font-size: 20px; font-weight: bold; text-align: center; }
-        button { width: 100%; padding: 20px; background: var(--p-dark); color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 30px; }
         
+        .btn-main { width: 100%; padding: 20px; background: var(--p-dark); color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; }
+        
+        /* Estilos de Backup */
+        .backup-zone { margin-top: 30px; padding: 15px; border: 2px dashed #ccc; border-radius: 8px; display: flex; gap: 10px; justify-content: center; background: #fff; }
+        .btn-backup { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 12px; }
+        .btn-export { background: #0288d1; color: white; }
+        .btn-import { background: #689f38; color: white; }
+
         .rel { position: relative; }
-        .autocomplete-suggestions { border: 1px solid #ddd; background: #fff; cursor: pointer; position: absolute; width: 100%; max-height: 200px; overflow-y: auto; z-index: 999; border-radius: 0 0 8px 8px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); display: none; }
-        .suggestion { padding: 12px; border-bottom: 1px solid #f0f0f0; font-size: 14px; color: #333; }
-        .suggestion:hover { background-color: #e0f2f1; color: var(--p-dark); font-weight: bold; }
+        .autocomplete-suggestions { border: 1px solid #ddd; background: #fff; cursor: pointer; position: absolute; width: 100%; max-height: 200px; overflow-y: auto; z-index: 999; border-radius: 0 0 8px 8px; display: none; }
+        .suggestion { padding: 12px; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+        .suggestion:hover { background-color: #e0f2f1; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -31,10 +38,10 @@
     <h2>Gerador de Promissória Profissional</h2>
     
     <div class="grid">
-        <div class="section-title">Dados do Beneficiário (Quem recebe)</div>
+        <div class="section-title">Dados do Beneficiário (Credor)</div>
         <div class="full-width rel">
             <label>Nome Completo:</label>
-            <input type="text" id="ben_nome" oninput="showSuggestions(this, 'ben')" placeholder="Digite para buscar ou cadastrar..." autocomplete="off">
+            <input type="text" id="ben_nome" oninput="showSuggestions(this, 'ben')" autocomplete="off">
             <div id="ben_list" class="autocomplete-suggestions"></div>
         </div>
         <div><label>CPF:</label><input type="text" id="ben_cpf" maxlength="14" oninput="fCPF(this)"></div>
@@ -45,13 +52,13 @@
         <div><label>Número:</label><input type="text" id="ben_numero"></div>
 
         <div class="section-title">Valores</div>
-        <div><label>Valor R$:</label><input type="text" id="valor" class="valor-input" placeholder="0,00" oninput="fMoeda(this)"></div>
+        <div><label>Valor R$:</label><input type="text" id="valor" class="valor-input" oninput="fMoeda(this)"></div>
         <div class="full-width"><label>Valor por Extenso:</label><input type="text" id="extenso" style="background:#f1f8e9" readonly></div>
 
-        <div class="section-title">Dados do Emitente (Quem paga)</div>
+        <div class="section-title">Dados do Emitente (Devedor)</div>
         <div class="full-width rel">
             <label>Nome do Emitente:</label>
-            <input type="text" id="emi_nome" oninput="showSuggestions(this, 'emi')" placeholder="Digite para buscar ou cadastrar..." autocomplete="off">
+            <input type="text" id="emi_nome" oninput="showSuggestions(this, 'emi')" autocomplete="off">
             <div id="emi_list" class="autocomplete-suggestions"></div>
         </div>
         <div><label>CEP:</label><input type="text" id="emi_cep" maxlength="9" onblur="buscaCEP('emi')"></div>
@@ -59,41 +66,56 @@
         <div><label>Número:</label><input type="text" id="emi_numero"></div>
         <div class="full-width">
             <label>Cidade e Data de Emissão:</label>
-            <input type="text" id="local_emissao" placeholder="Ex: Jacareí, 21 de Janeiro de 2026">
+            <input type="text" id="local_emissao">
         </div>
     </div>
 
-    <button onclick="gerarPDF()">GERAR PDF E SALVAR NO BANCO</button>
+    <button class="btn-main" onclick="gerarPDF()">GERAR PDF E SALVAR NO BANCO</button>
+
+    <div class="backup-zone">
+        <button class="btn-backup btn-export" onclick="exportarBackup()">⬇️ EXPORTAR BACKUP (SALVAR)</button>
+        <button class="btn-backup btn-import" onclick="id('input_file').click()">⬆️ IMPORTAR BACKUP (RESTAURAR)</button>
+        <input type="file" id="input_file" style="display:none" onchange="importarBackup(this)">
+    </div>
 </div>
 
 <script>
     const id = (el) => document.getElementById(el);
 
-    // --- BANCO DE DATOS MELHORADO ---
+    // --- FUNÇÕES DE BACKUP ---
+    function exportarBackup() {
+        const dados = {
+            ben: localStorage.getItem('db_beneficiarios'),
+            emi: localStorage.getItem('db_emitentes')
+        };
+        const blob = new Blob([JSON.stringify(dados)], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "backup_promissoria.json";
+        a.click();
+    }
+
+    function importarBackup(input) {
+        const reader = new FileReader();
+        reader.onload = function(){
+            const dados = JSON.parse(reader.result);
+            if(dados.ben) localStorage.setItem('db_beneficiarios', dados.ben);
+            if(dados.emi) localStorage.setItem('db_emitentes', dados.emi);
+            alert("Backup restaurado com sucesso!");
+            location.reload();
+        };
+        reader.readAsText(input.files[0]);
+    }
+
+    // --- BANCO DE DADOS ---
     function saveToDatabase() {
         const db_ben = JSON.parse(localStorage.getItem('db_beneficiarios')) || [];
         const db_emi = JSON.parse(localStorage.getItem('db_emitentes')) || [];
-
-        const novoBen = {
-            nome: id('ben_nome').value, cpf: id('ben_cpf').value, rg: id('ben_rg').value, 
-            tel: id('ben_tel').value, cep: id('ben_cep').value, end: id('ben_endereco').value, num: id('ben_numero').value
-        };
-        const novoEmi = {
-            nome: id('emi_nome').value, cep: id('emi_cep').value, end: id('emi_endereco').value, 
-            num: id('emi_numero').value, loc: id('local_emissao').value
-        };
-
-        if(novoBen.nome.length > 3){
-            const index = db_ben.findIndex(i => i.nome.toLowerCase() === novoBen.nome.toLowerCase());
-            if(index !== -1) db_ben[index] = novoBen; else db_ben.push(novoBen);
-            localStorage.setItem('db_beneficiarios', JSON.stringify(db_ben));
-        }
-
-        if(novoEmi.nome.length > 3){
-            const indexE = db_emi.findIndex(i => i.nome.toLowerCase() === novoEmi.nome.toLowerCase());
-            if(indexE !== -1) db_emi[indexE] = novoEmi; else db_emi.push(novoEmi);
-            localStorage.setItem('db_emitentes', JSON.stringify(db_emi));
-        }
+        const nB = { nome: id('ben_nome').value, cpf: id('ben_cpf').value, rg: id('ben_rg').value, tel: id('ben_tel').value, cep: id('ben_cep').value, end: id('ben_endereco').value, num: id('ben_numero').value };
+        const nE = { nome: id('emi_nome').value, cep: id('emi_cep').value, end: id('emi_endereco').value, num: id('emi_numero').value, loc: id('local_emissao').value };
+        if(nB.nome.length > 3){ const idx = db_ben.findIndex(i => i.nome.toLowerCase() === nB.nome.toLowerCase()); if(idx !== -1) db_ben[idx] = nB; else db_ben.push(nB); localStorage.setItem('db_beneficiarios', JSON.stringify(db_ben)); }
+        if(nE.nome.length > 3){ const idx = db_emi.findIndex(i => i.nome.toLowerCase() === nE.nome.toLowerCase()); if(idx !== -1) db_emi[idx] = nE; else db_emi.push(nE); localStorage.setItem('db_emitentes', JSON.stringify(db_emi)); }
     }
 
     function showSuggestions(input, tipo) {
@@ -101,10 +123,8 @@
         const list = id(tipo + '_list');
         list.innerHTML = '';
         if (val.length < 1) { list.style.display = 'none'; return; }
-
         const db = JSON.parse(localStorage.getItem(tipo === 'ben' ? 'db_beneficiarios' : 'db_emitentes')) || [];
         const matches = db.filter(item => item.nome.toLowerCase().includes(val));
-
         if(matches.length > 0) {
             list.style.display = 'block';
             matches.forEach(match => {
@@ -112,13 +132,8 @@
                 div.className = 'suggestion';
                 div.innerText = match.nome;
                 div.onclick = () => {
-                    if(tipo === 'ben') {
-                        id('ben_nome').value = match.nome; id('ben_cpf').value = match.cpf; id('ben_rg').value = match.rg;
-                        id('ben_tel').value = match.tel; id('ben_cep').value = match.cep; id('ben_endereco').value = match.end; id('ben_numero').value = match.num;
-                    } else {
-                        id('emi_nome').value = match.nome; id('emi_cep').value = match.cep; id('emi_endereco').value = match.end;
-                        id('emi_numero').value = match.num; id('local_emissao').value = match.loc;
-                    }
+                    if(tipo === 'ben') { id('ben_nome').value = match.nome; id('ben_cpf').value = match.cpf; id('ben_rg').value = match.rg; id('ben_tel').value = match.tel; id('ben_cep').value = match.cep; id('ben_endereco').value = match.end; id('ben_numero').value = match.num; }
+                    else { id('emi_nome').value = match.nome; id('emi_cep').value = match.cep; id('emi_endereco').value = match.end; id('emi_numero').value = match.num; id('local_emissao').value = match.loc; }
                     list.style.display = 'none';
                 };
                 list.appendChild(div);
@@ -126,60 +141,27 @@
         } else { list.style.display = 'none'; }
     }
 
-    // Fecha listas ao clicar fora
-    document.addEventListener('click', (e) => {
-        if(!e.target.closest('.rel')) { id('ben_list').style.display = 'none'; id('emi_list').style.display = 'none'; }
-    });
+    document.addEventListener('click', (e) => { if(!e.target.closest('.rel')) { id('ben_list').style.display = 'none'; id('emi_list').style.display = 'none'; }});
 
-    // --- MÁSCARAS ---
+    // --- MÁSCARAS E EXTENSO (Mesma lógica anterior) ---
     function fCPF(i) { let v = i.value.replace(/\D/g, ""); if (v.length > 11) v = v.slice(0, 11); v = v.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2"); i.value = v; }
     function fRG(i) { let v = i.value.replace(/\D/g, ""); if (v.length > 9) v = v.slice(0, 9); v = v.replace(/(\d{2})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1})$/, "$1-$2"); i.value = v; }
     function fMoeda(i) { let v = i.value.replace(/\D/g,''); v = (v/100).toFixed(2) + ''; v = v.replace(".", ",").replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,").replace(/(\d)(\d{3}),/g, "$1.$2,"); i.value = v; id('extenso').value = nExtenso(parseFloat(v.replace(/\./g, '').replace(',', '.'))); }
     function fTel(i) { i.value = i.value.replace(/\D/g,'').replace(/^(\d{2})(\d)/g,"($1) $2").replace(/(\d{5})(\d)/,"$1-$2"); }
-
-    async function buscaCEP(t) {
-        let c = id(t+'_cep').value.replace(/\D/g,'');
-        if(c.length===8) {
-            const r = await fetch(`https://viacep.com.br/ws/${c}/json/`);
-            const d = await r.json();
-            if(!d.erro) id(t+'_endereco').value = `${d.logradouro}, ${d.bairro} - ${d.localidade}/${d.uf}`;
-        }
-    }
-
-    function nExtenso(n) {
-        if (!n || isNaN(n)) return '';
-        let num = parseFloat(n).toFixed(2).split('.');
-        let int = parseInt(num[0]), cent = parseInt(num[1]);
-        const und = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"];
-        const d1 = ["dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
-        const dez = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
-        const ce = ["", "cem", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
-        function c(n) {
-            if (n === 100) return "cem";
-            if (n < 10) return und[n];
-            if (n < 20) return d1[n - 10];
-            if (n < 100) return dez[Math.floor(n/10)] + (n%10 > 0 ? " e " + und[n%10] : "");
-            if (n < 1000) return (Math.floor(n/100) === 1 && n%100 > 0 ? "cento" : ce[Math.floor(n/100)]) + (n%100 > 0 ? " e " + c(n%100) : "");
-            if (n < 1000000) return (Math.floor(n/1000) === 1 ? "mil" : c(Math.floor(n/1000)) + " mil") + (n%1000 > 0 ? " e " + c(n%1000) : "");
-            return n;
-        }
-        let r = (int > 0 ? c(int) + (int === 1 ? " real" : " reais") : "") + (cent > 0 ? (int > 0 ? " e " : "") + c(cent) + (cent === 1 ? " centavo" : " centavos") : "");
-        return r.charAt(0).toUpperCase() + r.slice(1);
-    }
+    async function buscaCEP(t) { let c = id(t+'_cep').value.replace(/\D/g,''); if(c.length===8) { const r = await fetch(`https://viacep.com.br/ws/${c}/json/`); const d = await r.json(); if(!d.erro) id(t+'_endereco').value = `${d.logradouro}, ${d.bairro} - ${d.localidade}/${d.uf}`; } }
+    function nExtenso(n) { if (!n || isNaN(n)) return ''; let num = parseFloat(n).toFixed(2).split('.'); let int = parseInt(num[0]), cent = parseInt(num[1]); const und = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"]; const d1 = ["dez", "onze", "doze", "treze", "quaturze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"]; const dez = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"]; const ce = ["", "cem", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"]; function c(n) { if (n === 100) return "cem"; if (n < 10) return und[n]; if (n < 20) return d1[n - 10]; if (n < 100) return dez[Math.floor(n/10)] + (n%10 > 0 ? " e " + und[n%10] : ""); if (n < 1000) return (Math.floor(n/100) === 1 && n%100 > 0 ? "cento" : ce[Math.floor(n/100)]) + (n%100 > 0 ? " e " + c(n%100) : ""); if (n < 1000000) return (Math.floor(n/1000) === 1 ? "mil" : c(Math.floor(n/1000)) + " mil") + (n%1000 > 0 ? " e " + c(n%1000) : ""); return n; } let r = (int > 0 ? c(int) + (int === 1 ? " real" : " reais") : "") + (cent > 0 ? (int > 0 ? " e " : "") + c(cent) + (cent === 1 ? " centavo" : " centavos") : ""); return r.charAt(0).toUpperCase() + r.slice(1); }
 
     function gerarPDF() {
         saveToDatabase();
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('l', 'mm', 'a4');
-
-        const b_nome = id('ben_nome').value.toUpperCase();
-        const b_end = id('ben_endereco').value + ", nº " + id('ben_numero').value;
-        const e_nome = id('emi_nome').value.toUpperCase();
-        const e_end = id('emi_endereco').value + ", nº " + id('emi_numero').value;
-        const local_manual = id('local_emissao').value;
-        const val_num = id('valor').value;
-        const val_ext = id('extenso').value;
-
+        const b_n = id('ben_nome').value.toUpperCase();
+        const b_e = id('ben_endereco').value + ", nº " + id('ben_numero').value;
+        const e_n = id('emi_nome').value.toUpperCase();
+        const e_e = id('emi_endereco').value + ", nº " + id('emi_numero').value;
+        const loc = id('local_emissao').value;
+        const v_n = id('valor').value;
+        const v_x = id('extenso').value;
         let docs = "";
         if(id('ben_cpf').value) docs += " CPF: " + id('ben_cpf').value;
         if(id('ben_rg').value) docs += " RG: " + id('ben_rg').value;
@@ -187,37 +169,20 @@
 
         pdf.setDrawColor(0, 77, 64); pdf.setLineWidth(1.5); pdf.rect(10, 10, 277, 190);
         pdf.setDrawColor(197, 160, 89); pdf.setLineWidth(0.5); pdf.rect(15, 15, 267, 180);
-
         pdf.setFont("helvetica", "bold"); pdf.setFontSize(22); pdf.setTextColor(0, 77, 64);
         pdf.text("NOTA PROMISSÓRIA", 25, 35);
-
         pdf.setFillColor(0, 77, 64); pdf.rect(200, 25, 75, 15, 'F');
-        pdf.setTextColor(255, 255, 255); pdf.setFontSize(18); pdf.text("R$ " + val_num, 205, 35);
-
+        pdf.setTextColor(255, 255, 255); pdf.setFontSize(18); pdf.text("R$ " + v_n, 205, 35);
         pdf.setTextColor(0, 0, 0); pdf.setFont("times", "normal"); pdf.setFontSize(15);
-        const txt = `Pagarei por esta única via de NOTA PROMISSÓRIA a ${b_nome}${docs}, residente em ${b_end}, ou à sua ordem, a quantia de ${val_ext} em moeda corrente nacional.`;
+        const txt = `Pagarei por esta única via de NOTA PROMISSÓRIA a ${b_n}${docs}, residente em ${b_e}, ou à sua ordem, a quantia de ${v_x} em moeda corrente nacional.`;
         pdf.text(pdf.splitTextToSize(txt, 240), 25, 60);
-
-        pdf.setFont("helvetica", "bold"); pdf.text("EMITENTE: " + e_nome, 25, 100);
-        pdf.setFont("helvetica", "normal"); pdf.text("ENDEREÇO: " + e_end, 25, 110);
-
-        // ASSINATURAS CENTRALIZADAS
+        pdf.setFont("helvetica", "bold"); pdf.text("EMITENTE: " + e_n, 25, 100);
+        pdf.setFont("helvetica", "normal"); pdf.text("ENDEREÇO: " + e_e, 25, 110);
         pdf.setFontSize(11);
-        // Linha Emitente
-        pdf.line(25, 155, 125, 155); 
-        pdf.text(e_nome, 75, 161, { align: "center" });
-        pdf.text("ASSINATURA DO EMITENTE", 75, 167, { align: "center" });
-
-        // Linha Beneficiário
-        pdf.line(160, 155, 260, 155);
-        pdf.text(b_nome, 210, 161, { align: "center" });
-        pdf.text("ASSINATURA DO BENEFICIÁRIO", 210, 167, { align: "center" });
-
-        pdf.setFont("helvetica", "italic");
-        pdf.text(`Emitida em ${local_manual}`, 148, 185, { align: "center" });
-
-        // SALVAR COM O NOME DO BENEFICIÁRIO
-        pdf.save(`PROMISSORIA ${b_nome}.pdf`);
+        pdf.line(25, 155, 125, 155); pdf.text(e_n, 75, 161, { align: "center" }); pdf.text("ASSINATURA DO EMITENTE", 75, 167, { align: "center" });
+        pdf.line(160, 155, 260, 155); pdf.text(b_n, 210, 161, { align: "center" }); pdf.text("ASSINATURA DO BENEFICIÁRIO", 210, 167, { align: "center" });
+        pdf.setFont("helvetica", "italic"); pdf.text(`Emitida em ${loc}`, 148, 185, { align: "center" });
+        pdf.save(`PROMISSORIA ${b_n}.pdf`);
     }
 </script>
 </body>
